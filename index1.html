@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Synths & Synth-ability">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Synths & Synth-ability</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overscroll-behavior: none; }
+
+body {
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ============================================================
+   PANEL — resizes between screens. 580px for welcome/lesson/done,
+   760px for full synth. Wood canvas redraws on resize.
+   ============================================================ */
+.panel-wrap {
+  position: relative;
+  width: 580px;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 1px rgba(255,255,255,0.08) inset,
+    0 30px 80px rgba(0,0,0,0.95),
+    0 8px 24px rgba(0,0,0,0.8);
+}
+.panel-wrap.size-lg { width: 900px; }
+
+#woodCanvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+}
+
+.panel-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 30px 44px 28px;
+  gap: 18px;
+  min-height: 460px;
+}
+.panel-wrap.size-lg .panel-content {
+  padding: 28px 36px 28px;
+  gap: 16px;
+  min-height: 600px;
+}
+.panel-content.hero-mode {
+  justify-content: center;
+  gap: 28px;
+}
+
+.panel-wrap::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(255,210,150,0.12);
+  border-bottom-color: rgba(0,0,0,0.5);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ---- BRASS SCREWS ---- */
+.screw {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  z-index: 4;
+  background: radial-gradient(circle at 35% 30%, #f6d98e 0%, #d8b25c 25%, #a07a28 60%, #604010 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,235,180,0.55),
+    inset 0 -1px 2px rgba(30,15,0,0.55),
+    0 1px 2px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(20,10,0,0.5),
+    0 0 0 2px rgba(120,80,30,0.18);
+}
+.screw::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 16%; right: 16%;
+  height: 1.8px;
+  background: rgba(15,8,0,0.85);
+  box-shadow: 0 1px 0 rgba(255,235,180,0.3);
+  transform: translateY(-50%);
+  border-radius: 1px;
+}
+.screw-tl { top: 13px; left: 13px;     transform: rotate(-18deg); }
+.screw-tr { top: 13px; right: 13px;    transform: rotate(24deg); }
+.screw-bl { bottom: 13px; left: 13px;  transform: rotate(9deg); }
+.screw-br { bottom: 13px; right: 13px; transform: rotate(-32deg); }
+
+/* ---- ENGRAVED LABEL & TITLE BLOCK ---- */
+.panel-label {
+  font-size: 12px; font-weight: 900; letter-spacing: 6px;
+  color: rgba(35, 18, 5, 0.85);
+  text-transform: uppercase;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.15), 0 1px 0 rgba(255,230,180,0.32);
+}
+.title-block { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.hairline {
+  width: 150px; height: 1px;
+  background: rgba(35, 18, 5, 0.55);
+  box-shadow: 0 1px 0 rgba(255, 230, 180, 0.32);
+  border-radius: 1px;
+}
+.panel-wrap.size-lg .hairline { width: 180px; }
+
+.title-block.brand .hairline { width: 200px; }
+.title-block.brand .panel-label {
+  font-size: 12px; letter-spacing: 4px;
+}
+
+/* ---- NAMEPLATE ---- */
+.nameplate {
+  position: absolute;
+  bottom: 22px; right: 38px;
+  width: 104px; height: 20px;
+  border-radius: 2px;
+  background: radial-gradient(ellipse at 30% 25%, #f6d98e 0%, #d8b25c 30%, #a8802c 70%, #6a4810 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,235,180,0.5),
+    inset 0 -1px 1px rgba(30,15,0,0.45),
+    inset 0 0 0 0.5px rgba(255,235,180,0.25),
+    0 1px 2px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(20,10,0,0.45);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 6px;
+  z-index: 4;
+}
+.panel-wrap.size-lg .nameplate { width: 116px; }
+.np-screw {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 35% 30%, #f6d98e 0%, #c8a04a 50%, #5e4010 100%);
+  box-shadow:
+    inset 0 0.5px 0.5px rgba(255,235,180,0.55),
+    inset 0 -0.5px 0.5px rgba(20,10,0,0.5),
+    0 0.5px 1px rgba(0,0,0,0.5);
+}
+.np-screw::before {
+  content: ''; position: absolute; top: 50%; left: 18%; right: 18%;
+  height: 0.8px; background: rgba(15,8,0,0.75); border-radius: 0.5px;
+}
+.np-screw.np-l::before { transform: translateY(-50%) rotate(-30deg); }
+.np-screw.np-r::before { transform: translateY(-50%) rotate(22deg); }
+.np-text {
+  font-size: 8.5px; font-weight: 800; letter-spacing: 1.6px;
+  color: rgba(20, 10, 2, 0.9);
+  text-shadow: 0 -0.5px 0 rgba(0,0,0,0.2), 0 1px 0 rgba(255,235,180,0.4);
+  text-transform: uppercase;
+  white-space: nowrap; text-align: center; flex: 1;
+}
+.nameplate[hidden] { display: none; }
+
+/* ---- ARP MODULE (synth screen only — bottom-left, mirroring nameplate) ---- */
+.arp-module {
+  position: absolute;
+  bottom: 60px; left: 65px;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  gap: 48px;
+  padding: 10px 36px 8px;
+  border-radius: 5px;
+  background:
+    linear-gradient(to bottom, rgba(50,28,8,0.45), rgba(20,10,4,0.55)),
+    radial-gradient(ellipse at 30% 25%, rgba(120,75,30,0.3), rgba(50,28,8,0));
+  box-shadow:
+    inset 0 1px 0 rgba(255,210,150,0.2),
+    inset 0 -1px 0 rgba(0,0,0,0.4),
+    0 2px 4px rgba(0,0,0,0.6),
+    0 0 0 0.5px rgba(20,10,0,0.6);
+}
+.arp-module[hidden] { display: none; }
+
+.arp-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.arp-slot {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arp-housing {
+  width: 28px; height: 50px;
+  border-radius: 5px;
+  background: linear-gradient(to bottom, #2a1e0c, #0f0a04);
+  border: 1px solid #050300;
+  box-shadow:
+    0 4px 0 #050300,
+    0 5px 10px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,210,150,0.12),
+    inset 1px 0 0 rgba(255,210,150,0.05);
+  position: relative; cursor: pointer;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 4px;
+}
+.arp-lever {
+  width: 20px; height: 24px;
+  border-radius: 3px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(to bottom, #c8bea8, #a09080);
+  border: 1px solid #786850;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6);
+  position: absolute; top: 4px;
+  transition: top 0.12s ease;
+}
+.arp-housing.on .arp-lever { top: calc(100% - 28px); }
+.arp-light {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(15,8,0,0.6);
+  border: 1px solid rgba(0,0,0,0.4);
+  position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.arp-housing.on .arp-light {
+  background: #28dd5a;
+  box-shadow: 0 0 8px #28dd5a, 0 0 3px #28dd5a;
+  border-color: #14903a;
+}
+.arp-knob-area {
+  position: relative; width: 70px; height: 70px;
+  display: flex; align-items: center; justify-content: center;
+}
+.arp-knob-area canvas { cursor: grab; display: block; }
+.arp-knob-area canvas:active { cursor: grabbing; }
+.arp-sublabel {
+  font-size: 9px; font-weight: 800; letter-spacing: 2.5px;
+  color: rgba(232, 215, 180, 0.85);
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+  text-align: center;
+}
+
+/* ---- VIEWS ---- */
+.screen-view { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+.screen-view[hidden] { display: none; }
+.tap-anywhere { cursor: pointer; flex: 1; justify-content: center; }
+
+/* ============================================================
+   WELCOME / DONE — hero content sized for 580px panel
+   ============================================================ */
+.hero-block {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 22px;
+  padding: 8px 0;
+}
+.speaker-grid {
+  display: grid;
+  grid-template-columns: repeat(15, 8px);
+  grid-template-rows: repeat(4, 8px);
+  gap: 8px;
+}
+.sdot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(15,8,0,0.65);
+  box-shadow: inset 0 0.5px 0.5px rgba(0,0,0,0.7), 0 0.5px 0 rgba(255,225,180,0.18);
+}
+.hero-title {
+  font-family: 'Times New Roman', 'Playfair Display', serif;
+  font-size: 54px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(25, 12, 2, 0.92);
+  text-align: center;
+  line-height: 1.05;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.18), 0 1px 0 rgba(255,230,180,0.32);
+}
+.hero-sub {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: rgba(35, 18, 5, 0.7);
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255,230,180,0.3);
+  text-align: center;
+}
+.star-row { display: flex; gap: 14px; margin-bottom: 4px; }
+.star { width: 44px; height: 44px; filter: drop-shadow(0 1px 0 rgba(255,230,180,0.4)) drop-shadow(0 -1px 0 rgba(0,0,0,0.3)); }
+
+/* ---- BRASS PLATE BUTTON ---- */
+.brass-plate {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  position: relative;
+  height: 36px;
+  padding: 0 26px;
+  border-radius: 3px;
+  background: radial-gradient(ellipse at 30% 25%, #f6d98e 0%, #d8b25c 30%, #a8802c 70%, #6a4810 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,235,180,0.6),
+    inset 0 -1px 1px rgba(30,15,0,0.55),
+    inset 0 0 0 0.5px rgba(255,235,180,0.3),
+    0 2px 4px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(20,10,0,0.5);
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.6px;
+  color: rgba(20, 10, 2, 0.9);
+  text-transform: uppercase;
+  text-shadow: 0 -0.5px 0 rgba(0,0,0,0.2), 0 1px 0 rgba(255,235,180,0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: top 0.07s, box-shadow 0.07s;
+  top: 0;
+}
+.brass-plate:active {
+  top: 1px;
+  box-shadow:
+    inset 0 1px 1px rgba(30,15,0,0.4),
+    0 1px 2px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(20,10,0,0.5);
+}
+
+/* ---- CONCEPT LINE ---- */
+.concept-line {
+  font-family: 'Times New Roman', serif;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  color: rgba(35, 18, 5, 0.78);
+  text-align: center;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 0 rgba(255,230,180,0.3);
+  max-width: 460px;
+  line-height: 1.3;
+  margin-top: -4px;
+}
+
+/* ---- KNOBS ---- */
+.knob-canvas { cursor: grab; display: block; position: relative; z-index: 2; }
+.knob-canvas:active { cursor: grabbing; }
+.knob-area { position: relative; display: flex; align-items: center; justify-content: center; }
+.knob-area.lg { width: 200px; height: 200px; }
+.knob-area.md { width: 160px; height: 160px; }
+.knob-area.sm { width: 120px; height: 120px; }
+.knob-unit { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.knob-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 4px;
+  color: rgba(35, 18, 5, 0.78);
+  text-transform: uppercase;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.12), 0 1px 0 rgba(255,230,180,0.3);
+}
+.knob-row { display: flex; align-items: flex-start; justify-content: center; gap: 50px; }
+.knob-row .knob-unit { width: 160px; }
+
+/* ---- CRT VISUALISATION (lesson screens) ---- */
+.scope-screen {
+  width: 380px;
+  height: 80px;
+  padding: 5px;
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, #d8b25c 0%, #a8802c 50%, #6a4810 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,235,180,0.6),
+    inset 0 -1px 1px rgba(30,15,0,0.55),
+    inset 0 0 0 0.5px rgba(255,235,180,0.3),
+    0 3px 5px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(20,10,0,0.6);
+  position: relative;
+}
+.scope-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(ellipse at center, #0c1a08 0%, #060e04 60%, #020604 100%);
+  box-shadow:
+    inset 0 0 20px rgba(40, 221, 90, 0.08),
+    inset 0 1px 2px rgba(0,0,0,0.85),
+    inset 0 -1px 1px rgba(0,0,0,0.6);
+}
+.scope-inner::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.18) 0px,
+    rgba(0,0,0,0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+.scope-inner::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.3) 100%);
+  pointer-events: none;
+  z-index: 3;
+}
+.scope-inner canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Synth-screen scope: 220x108, absolute bottom-right, mirrors the arp module.
+   bottom: 60 puts it above the nameplate (which sits at bottom: 22 + ~20 high) with breathing room.
+   right: 65 centres it horizontally under the Envelope column. */
+.scope-screen.synth-scope {
+  width: 220px;
+  height: 108px;
+  position: absolute;
+  bottom: 60px;
+  right: 65px;
+  z-index: 4;
+}
+.scope-screen.synth-scope[hidden] { display: none; }
+
+/* /CRT */
+.wave-buttons { display: flex; gap: 11px; }
+
+/* Stacked vertical variant — used in lesson oscillator and synth oscillator section */
+.wave-buttons.wave-stack {
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+/* Lesson oscillator screen: buttons 74×50, gap 5 → stack height = 160 (matches knob-area.md exactly) */
+.wave-buttons.wave-stack .wave-btn {
+  width: 74px;
+  height: 50px;
+}
+
+/* Synth section: bigger more-spaced buttons sized to match the 120px section knob */
+.panel-wrap.size-lg .wave-buttons.wave-stack {
+  gap: 8px;
+}
+.panel-wrap.size-lg .wave-buttons.wave-stack .wave-btn {
+  width: 110px;
+  height: 34px;
+}
+.panel-wrap.size-lg .wave-buttons.wave-stack .wave-btn svg {
+  width: 30px;
+  height: 22px;
+}
+.wave-btn {
+  width: 74px; height: 52px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: none; outline: none;
+  position: relative; top: 0;
+  transition: top 0.07s, box-shadow 0.07s;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(to bottom, #f4ead8, #dfd0b0);
+  box-shadow:
+    0 5px 0 #5a3818,
+    0 6px 12px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    inset 0 -1px 0 rgba(0,0,0,0.1);
+}
+.panel-wrap.size-lg .wave-btn { width: 56px; height: 40px; }
+.panel-wrap.size-lg .wave-btn svg { width: 30px; height: 22px; }
+.wave-btn:active, .wave-btn.selected {
+  top: 4px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(to bottom, #d8cdb0, #ccc0a0);
+  box-shadow:
+    0 1px 0 #5a3818,
+    0 2px 4px rgba(0,0,0,0.3),
+    inset 0 1px 2px rgba(0,0,0,0.15);
+}
+.wave-btn svg { width: 36px; height: 26px; }
+.wave-led {
+  position: absolute; top: 5px; right: 5px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(20,10,0,0.5);
+  border: 0.5px solid rgba(0,0,0,0.4);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.wave-btn.selected[data-wave="sine"]     .wave-led { background:#28dd5a; box-shadow:0 0 5px #28dd5a, inset 0 0 1px rgba(255,255,255,0.5); border-color:rgba(20,80,30,0.6); }
+.wave-btn.selected[data-wave="square"]   .wave-led { background:#f4c828; box-shadow:0 0 5px #f4c828, inset 0 0 1px rgba(255,255,255,0.5); border-color:rgba(110,80,10,0.6); }
+.wave-btn.selected[data-wave="sawtooth"] .wave-led { background:#f55a1c; box-shadow:0 0 5px #f55a1c, inset 0 0 1px rgba(255,255,255,0.5); border-color:rgba(120,40,5,0.6); }
+
+/* ---- SECTIONS (synth screen) ---- */
+.sections-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 100%;
+  align-items: start;
+  margin-top: 2px;
+}
+.section-col {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 0 12px;
+  position: relative;
+}
+.section-col + .section-col::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8%; bottom: 8%;
+  width: 1px;
+  background: rgba(35, 18, 5, 0.4);
+  box-shadow: 1px 0 0 rgba(255, 230, 180, 0.18);
+}
+.section-header {
+  font-size: 10px; font-weight: 800; letter-spacing: 4px;
+  color: rgba(35, 18, 5, 0.78);
+  text-transform: uppercase;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.12), 0 1px 0 rgba(255,230,180,0.3);
+  padding-bottom: 4px;
+}
+.section-col .knob-pair { display: flex; gap: 10px; align-items: flex-start; }
+
+/* ============================================================
+   KEYS — two distinct sets
+   .lesson-keys: 5 keys (C, C#, D, D#, E) at 58px wide
+   .synth-keys:  13 keys at 68px wide
+   ============================================================ */
+.keys-container {
+  position: relative;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.keys-container[hidden] { display: none; }
+
+/* Lesson keys row: [latch][keys][empty spacer] — grid keeps keys dead-centre,
+   nameplate at bottom-right provides counterweight to the latch */
+.keys-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  column-gap: 24px;
+}
+.keys-row[hidden] { display: none; }
+.lesson-latch {
+  justify-self: end;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 7px;
+}
+
+.lesson-keys { height: 66px; }
+.synth-keys  { height: 76px; margin-top: 18px; }
+
+.white-key {
+  border-radius: 0 0 7px 7px;
+  cursor: pointer;
+  position: relative;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 7px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+  color: rgba(40,20,0,0.4);
+  z-index: 1;
+  background: linear-gradient(175deg, #f8f2e4 0%, #ede6d4 40%, #ddd6c0 100%);
+  border: 1px solid rgba(80,50,15,0.45);
+  border-top: 2px solid rgba(120,80,25,0.5);
+  box-shadow:
+    0 5px 0 rgba(40,25,5,0.65),
+    0 7px 10px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset -1px 0 0 rgba(0,0,0,0.08);
+  transition: transform 0.05s, box-shadow 0.05s, background 0.05s;
+}
+.white-key:active, .white-key.pressed {
+  background: linear-gradient(175deg, #ddd8c8 0%, #cec8b4 100%);
+  box-shadow: 0 1px 0 rgba(40,25,5,0.65), inset 0 2px 3px rgba(0,0,0,0.12);
+  transform: translateY(4px);
+}
+.lesson-keys .white-key { width: 58px; height: 66px; }
+.synth-keys  .white-key { width: 68px; height: 76px; }
+
+.black-key {
+  border-radius: 0 0 5px 5px;
+  cursor: pointer;
+  position: absolute; top: 0; z-index: 3;
+  background: linear-gradient(175deg, #3e3224 0%, #221a0c 50%, #100e06 100%);
+  box-shadow:
+    0 6px 0 rgba(0,0,0,0.85),
+    0 8px 14px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 1px 0 0 rgba(255,255,255,0.06);
+  transition: transform 0.05s, box-shadow 0.05s, background 0.05s;
+}
+.black-key::after {
+  content: '';
+  position: absolute; top: 3px; left: 4px; right: 4px;
+  height: 12px; border-radius: 2px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
+}
+.black-key:active, .black-key.pressed {
+  background: linear-gradient(175deg, #2a2018 0%, #120e04 100%);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.85), inset 0 2px 4px rgba(0,0,0,0.4);
+  transform: translateY(4px);
+}
+.lesson-keys .black-key { width: 38px; height: 42px; }
+.synth-keys  .black-key { width: 42px; height: 48px; }
+
+/* lesson key positions */
+.lesson-keys #key-cs { left: calc(58px - 19px); }
+.lesson-keys #key-ds { left: calc(58px * 2 - 19px); }
+
+/* synth key positions (white = 68px, black = 42px, offset = -21px) */
+.synth-keys #key-cs2 { left: calc(68px * 1 - 21px); }
+.synth-keys #key-ds2 { left: calc(68px * 2 - 21px); }
+.synth-keys #key-fs2 { left: calc(68px * 4 - 21px); }
+.synth-keys #key-gs2 { left: calc(68px * 5 - 21px); }
+.synth-keys #key-as2 { left: calc(68px * 6 - 21px); }
+
+/* ---- CRT SCREEN (visualisations on lesson screens) ---- */
+.crt-screen {
+  width: 380px;
+  height: 80px;
+  position: relative;
+  padding: 5px;
+  background: linear-gradient(to bottom, #1f1108 0%, #0a0604 100%);
+  border-radius: 6px;
+  border: 1px solid #050300;
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,0.18),
+    inset 0 -1px 1px rgba(0,0,0,0.7),
+    0 2px 4px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(20,10,0,0.5);
+}
+.crt-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, #082015 0%, #030a06 100%);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.9),
+    inset 0 -1px 2px rgba(0,0,0,0.6),
+    inset 1px 0 1px rgba(0,0,0,0.4);
+}
+.crt-inner canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+.crt-inner::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0,0,0,0.22) 2px,
+      rgba(0,0,0,0.22) 3px),
+    radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---- HOLD / LATCH ---- */
+.latch-row {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  width: 100%; position: relative;
+}
+.latch-row[hidden] { display: none; }
+
+/* On synth screen: latch goes absolute, vertically centred against the arp + scope ABA trio.
+   Arp & scope: height ≈ 108, bottom: 60 → span 60–168, centre at 114.
+   Latch height ≈ 69 → bottom = 114 − 34.5 ≈ 80 to centre it. */
+.panel-wrap.size-lg .latch-row {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+}
+.latch-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 2.5px;
+  color: rgba(35, 18, 5, 0.78);
+  text-transform: uppercase;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.12), 0 1px 0 rgba(255,230,180,0.3);
+}
+.latch-housing {
+  width: 28px; height: 50px;
+  border-radius: 5px;
+  background: linear-gradient(to bottom, #2a1e0c, #0f0a04);
+  border: 1px solid #050300;
+  box-shadow:
+    0 4px 0 #050300,
+    0 5px 10px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,210,150,0.12),
+    inset 1px 0 0 rgba(255,210,150,0.05);
+  position: relative; cursor: pointer;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 4px;
+}
+.latch-lever {
+  width: 20px; height: 24px;
+  border-radius: 3px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(to bottom, #c8bea8, #a09080);
+  border: 1px solid #786850;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6);
+  position: absolute; top: 4px;
+  transition: top 0.12s ease;
+}
+.latch-housing.on .latch-lever { top: calc(100% - 28px); }
+.latch-light {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(15,8,0,0.6);
+  border: 1px solid rgba(0,0,0,0.4);
+  position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.latch-housing.on .latch-light {
+  background: #28dd5a;
+  box-shadow: 0 0 8px #28dd5a, 0 0 3px #28dd5a;
+  border-color: #14903a;
+}
+
+/* ---- NAVIGATION ---- */
+.nav-row {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  margin-top: 4px;
+}
+.nav-row[hidden] { display: none; }
+.nav-row .spacer { width: 36px; height: 36px; }
+
+.brass-back {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  border: none; outline: none;
+  background: radial-gradient(ellipse at 30% 25%, #f6d98e 0%, #d8b25c 30%, #a8802c 70%, #6a4810 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,235,180,0.6),
+    inset 0 -1px 1px rgba(30,15,0,0.55),
+    0 2px 4px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(20,10,0,0.5);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: rgba(20, 10, 2, 0.9);
+  font-weight: 700;
+  text-shadow: 0 -0.5px 0 rgba(0,0,0,0.2), 0 1px 0 rgba(255,235,180,0.4);
+}
+.brass-back:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<div class="panel-wrap" id="panelWrap">
+  <canvas id="woodCanvas"></canvas>
+
+  <div class="screw screw-tl"></div>
+  <div class="screw screw-tr"></div>
+  <div class="screw screw-bl"></div>
+  <div class="screw screw-br"></div>
+
+  <div class="nameplate" hidden>
+    <span class="np-screw np-l"></span>
+    <span class="np-text" id="nameplateText">SSA SYNTH-01</span>
+    <span class="np-screw np-r"></span>
+  </div>
+
+  <!-- ARP MODULE — synth screen only, bottom-left absolute -->
+  <div class="arp-module" id="arpModule" hidden>
+    <div class="arp-unit">
+      <div class="arp-slot">
+        <div class="arp-housing" id="arpSwitch" onclick="toggleArp()">
+          <div class="arp-lever"></div>
+          <div class="arp-light"></div>
+        </div>
+      </div>
+      <div class="arp-sublabel">Arp</div>
+    </div>
+    <div class="arp-unit">
+      <div class="arp-slot">
+        <div class="arp-knob-area">
+          <canvas id="rateCanvas" class="knob-canvas" width="140" height="140" style="width:70px;height:70px;"></canvas>
+        </div>
+      </div>
+      <div class="arp-sublabel">Rate</div>
+    </div>
+  </div>
+
+  <!-- SYNTH SCOPE — synth screen only, bottom-right absolute (mirrors arp) -->
+  <div class="scope-screen synth-scope" id="synthScopeShell" hidden>
+    <div class="scope-inner">
+      <canvas id="scopeCanvasSyn" width="440" height="216"></canvas>
+    </div>
+  </div>
+
+  <div class="panel-content" id="panelContent">
+
+    <!-- =====  TOP NAV  (hidden on welcome/done) ===== -->
+    <div class="nav-row" id="navRow" hidden>
+      <button class="brass-back" id="navBack" onclick="goBack()">←</button>
+      <button class="brass-plate" id="navNext" onclick="goNext()">Next</button>
+    </div>
+
+    <!-- =====  WELCOME ===== -->
+    <div class="screen-view" id="view-welcome">
+      <div class="title-block brand">
+        <div class="hairline"></div>
+        <div class="panel-label">Synths &amp; Synth-ability</div>
+        <div class="hairline"></div>
+      </div>
+      <div class="hero-block">
+        <div class="speaker-grid" id="speakerTop"></div>
+        <div class="hero-title">Make<br>a sound</div>
+        <div class="speaker-grid" id="speakerBot"></div>
+      </div>
+      <button class="brass-plate" onclick="startApp()">Begin</button>
+    </div>
+
+    <!-- =====  OSCILLATOR ===== -->
+    <div class="screen-view" id="view-oscillator" hidden>
+      <div class="title-block">
+        <div class="hairline"></div>
+        <div class="panel-label">Oscillator</div>
+        <div class="hairline"></div>
+      </div>
+
+      <div class="knob-row">
+        <div class="knob-unit">
+          <div class="knob-area md">
+            <canvas id="pitchCanvasOsc" class="knob-canvas" width="320" height="320" style="width:160px;height:160px;"></canvas>
+          </div>
+          <div class="knob-label">Pitch</div>
+        </div>
+        <div class="knob-unit">
+          <div class="wave-buttons wave-stack">
+            <button class="wave-btn selected" data-wave="sine" onclick="selectWave(this)">
+              <span class="wave-led"></span>
+              <svg viewBox="0 0 40 28" fill="none" stroke="rgba(40,20,0,0.7)" stroke-width="2.2" stroke-linecap="round">
+                <path d="M3 14 C7 14, 9 3, 13 3 C17 3, 19 25, 23 25 C27 25, 29 14, 37 14"/>
+              </svg>
+            </button>
+            <button class="wave-btn" data-wave="square" onclick="selectWave(this)">
+              <span class="wave-led"></span>
+              <svg viewBox="0 0 40 28" fill="none" stroke="rgba(40,20,0,0.7)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 20 L3 8 L13 8 L13 20 L22 20 L22 8 L32 8 L32 20 L37 20"/>
+              </svg>
+            </button>
+            <button class="wave-btn" data-wave="sawtooth" onclick="selectWave(this)">
+              <span class="wave-led"></span>
+              <svg viewBox="0 0 40 28" fill="none" stroke="rgba(40,20,0,0.7)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 22 L15 6 L15 22 L27 6 L27 22 L37 6"/>
+              </svg>
+            </button>
+          </div>
+          <div class="knob-label">Wave</div>
+        </div>
+      </div>
+
+      <div class="scope-screen">
+        <div class="scope-inner">
+          <canvas id="scopeCanvas" width="760" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====  FILTER ===== -->
+    <div class="screen-view" id="view-filter" hidden>
+      <div class="title-block">
+        <div class="hairline"></div>
+        <div class="panel-label">Filter</div>
+        <div class="hairline"></div>
+      </div>
+
+      <div class="knob-row">
+        <div class="knob-unit">
+          <div class="knob-area md">
+            <canvas id="cutoffCanvasFlt" class="knob-canvas" width="320" height="320" style="width:160px;height:160px;"></canvas>
+          </div>
+          <div class="knob-label">Cutoff</div>
+        </div>
+        <div class="knob-unit">
+          <div class="knob-area md">
+            <canvas id="resonanceCanvasFlt" class="knob-canvas" width="320" height="320" style="width:160px;height:160px;"></canvas>
+          </div>
+          <div class="knob-label">Resonance</div>
+        </div>
+      </div>
+
+      <div class="scope-screen">
+        <div class="scope-inner">
+          <canvas id="filterCurveCanvas" width="760" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====  ENVELOPE ===== -->
+    <div class="screen-view" id="view-envelope" hidden>
+      <div class="title-block">
+        <div class="hairline"></div>
+        <div class="panel-label">Envelope</div>
+        <div class="hairline"></div>
+      </div>
+
+      <div class="knob-row">
+        <div class="knob-unit">
+          <div class="knob-area md">
+            <canvas id="attackCanvasEnv" class="knob-canvas" width="320" height="320" style="width:160px;height:160px;"></canvas>
+          </div>
+          <div class="knob-label">Attack</div>
+        </div>
+        <div class="knob-unit">
+          <div class="knob-area md">
+            <canvas id="releaseCanvasEnv" class="knob-canvas" width="320" height="320" style="width:160px;height:160px;"></canvas>
+          </div>
+          <div class="knob-label">Release</div>
+        </div>
+      </div>
+
+      <div class="scope-screen">
+        <div class="scope-inner">
+          <canvas id="envelopeCurveCanvas" width="760" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====  FULL SYNTH ===== -->
+    <div class="screen-view" id="view-synth" hidden>
+      <div class="title-block">
+        <div class="hairline"></div>
+        <div class="panel-label">Synth</div>
+        <div class="hairline"></div>
+      </div>
+
+      <div class="sections-row">
+        <div class="section-col">
+          <div class="section-header">Oscillator</div>
+          <div class="knob-pair">
+            <div class="knob-unit">
+              <div class="knob-area sm">
+                <canvas id="pitchCanvasSyn" class="knob-canvas" width="220" height="220" style="width:120px;height:120px;"></canvas>
+              </div>
+              <div class="knob-label">Pitch</div>
+            </div>
+            <div class="knob-unit">
+              <div class="wave-buttons wave-stack">
+                <button class="wave-btn selected" data-wave="sine" onclick="selectWave(this)">
+                  <span class="wave-led"></span>
+                  <svg viewBox="0 0 40 28" fill="none" stroke="rgba(40,20,0,0.7)" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M3 14 C7 14, 9 3, 13 3 C17 3, 19 25, 23 25 C27 25, 29 14, 37 14"/>
+                  </svg>
+                </button>
+                <button class="wave-btn" data-wave="square" onclick="selectWave(this)">
+                  <span class="wave-led"></span>
+                  <svg viewBox="0 0 40 28" fill="none" stroke="rgba(40,20,0,0.7)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 20 L3 8 L13 8 L13 20 L22 20 L22 8 L32 8 L32 20 L37 20"/>
+                  </svg>
+                </button>
+                <button class="wave-btn" data-wave="sawtooth" onclick="selectWave(this)">
+                  <span class="wave-led"></span>
+                  <svg viewBox="0 0 40 28" fill="none" stroke="rgba(40,20,0,0.7)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 22 L15 6 L15 22 L27 6 L27 22 L37 6"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="knob-label">Wave</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-col">
+          <div class="section-header">Filter</div>
+          <div class="knob-pair">
+            <div class="knob-unit">
+              <div class="knob-area sm"><canvas id="cutoffCanvasSyn" class="knob-canvas" width="220" height="220" style="width:120px;height:120px;"></canvas></div>
+              <div class="knob-label">Cutoff</div>
+            </div>
+            <div class="knob-unit">
+              <div class="knob-area sm"><canvas id="resonanceCanvasSyn" class="knob-canvas" width="220" height="220" style="width:120px;height:120px;"></canvas></div>
+              <div class="knob-label">Resonance</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-col">
+          <div class="section-header">Envelope</div>
+          <div class="knob-pair">
+            <div class="knob-unit">
+              <div class="knob-area sm"><canvas id="attackCanvasSyn" class="knob-canvas" width="220" height="220" style="width:120px;height:120px;"></canvas></div>
+              <div class="knob-label">Attack</div>
+            </div>
+            <div class="knob-unit">
+              <div class="knob-area sm"><canvas id="releaseCanvasSyn" class="knob-canvas" width="220" height="220" style="width:120px;height:120px;"></canvas></div>
+              <div class="knob-label">Release</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====  YOU DID IT ===== -->
+    <div class="screen-view" id="view-done" hidden>
+      <div class="title-block brand">
+        <div class="hairline"></div>
+        <div class="panel-label">Synths &amp; Synth-ability</div>
+        <div class="hairline"></div>
+      </div>
+      <div class="hero-block">
+        <div class="star-row">
+          <svg class="star" viewBox="0 0 16 16"><polygon points="8,0.5 10.2,5.8 16,6 11.6,9.8 13.1,15.5 8,12.2 2.9,15.5 4.4,9.8 0,6 5.8,5.8" fill="#D4A012" stroke="rgba(80,50,5,0.6)" stroke-width="0.4"/></svg>
+          <svg class="star" viewBox="0 0 16 16"><polygon points="8,0.5 10.2,5.8 16,6 11.6,9.8 13.1,15.5 8,12.2 2.9,15.5 4.4,9.8 0,6 5.8,5.8" fill="#F5D44A" stroke="rgba(80,50,5,0.6)" stroke-width="0.4"/></svg>
+          <svg class="star" viewBox="0 0 16 16"><polygon points="8,0.5 10.2,5.8 16,6 11.6,9.8 13.1,15.5 8,12.2 2.9,15.5 4.4,9.8 0,6 5.8,5.8" fill="#D4A012" stroke="rgba(80,50,5,0.6)" stroke-width="0.4"/></svg>
+        </div>
+        <div class="hero-title">You did it!</div>
+        <div class="hero-sub">You made your first synth sound</div>
+      </div>
+      <div style="display:flex;gap:14px;">
+        <button class="brass-plate" onclick="goTo('synth')">Keep playing</button>
+        <button class="brass-plate" onclick="goTo('welcome')">Start over</button>
+      </div>
+    </div>
+
+    <!-- =====  LESSON KEYS ROW (latch | keys | spacer) ===== -->
+    <div class="keys-row" id="lessonKeysRow" hidden>
+      <div class="lesson-latch" id="lessonLatch">
+        <div class="latch-housing" onclick="toggleLatch()">
+          <div class="latch-lever"></div>
+          <div class="latch-light"></div>
+        </div>
+        <div class="latch-label">Hold</div>
+      </div>
+      <div class="keys-container lesson-keys" id="lessonKeys">
+        <div class="white-key" data-freq="261.63">C</div>
+        <div class="black-key" id="key-cs" data-freq="277.18"></div>
+        <div class="white-key" data-freq="293.66">D</div>
+        <div class="black-key" id="key-ds" data-freq="311.13"></div>
+        <div class="white-key" data-freq="329.63">E</div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- =====  SYNTH KEYS (13 keys) ===== -->
+    <div class="keys-container synth-keys" id="synthKeys" hidden>
+      <div class="white-key" data-freq="261.63">C</div>
+      <div class="black-key" id="key-cs2" data-freq="277.18"></div>
+      <div class="white-key" data-freq="293.66">D</div>
+      <div class="black-key" id="key-ds2" data-freq="311.13"></div>
+      <div class="white-key" data-freq="329.63">E</div>
+      <div class="white-key" data-freq="349.23">F</div>
+      <div class="black-key" id="key-fs2" data-freq="369.99"></div>
+      <div class="white-key" data-freq="392.00">G</div>
+      <div class="black-key" id="key-gs2" data-freq="415.30"></div>
+      <div class="white-key" data-freq="440.00">A</div>
+      <div class="black-key" id="key-as2" data-freq="466.16"></div>
+      <div class="white-key" data-freq="493.88">B</div>
+      <div class="white-key" data-freq="523.25">C</div>
+    </div>
+
+    <!-- =====  SYNTH LATCH ROW (absolute-positioned on synth screen) ===== -->
+    <div class="latch-row" id="latchRow" hidden>
+      <div class="latch-housing" id="latchSwitch" onclick="toggleLatch()">
+        <div class="latch-lever"></div>
+        <div class="latch-light"></div>
+      </div>
+      <div class="latch-label">Hold</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CHASSIS RENDERING
+   ============================================================ */
+function drawWood(canvas, w, h) {
+  canvas.width = w * 2; canvas.height = h * 2;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  ctx.fillStyle = '#a06a32'; ctx.fillRect(0, 0, cw, ch);
+  const gv = ctx.createLinearGradient(0, 0, cw, ch);
+  gv.addColorStop(0,   'rgba(225,165,90,0.45)');
+  gv.addColorStop(0.4, 'rgba(180,115,55,0.30)');
+  gv.addColorStop(0.7, 'rgba(165,100,45,0.35)');
+  gv.addColorStop(1,   'rgba(210,150,80,0.40)');
+  ctx.fillStyle = gv; ctx.fillRect(0, 0, cw, ch);
+  const rng = (seed => () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; })(42);
+  for (let i = 0; i < 380; i++) {
+    const y = rng() * ch;
+    const width = rng() * 3 + 0.3;
+    const alpha = rng() * 0.09 + 0.012;
+    const dark = rng() > 0.5;
+    const color = dark ? `rgba(70,35,8,${alpha*1.05})` : `rgba(240,190,110,${alpha*0.8})`;
+    ctx.beginPath(); ctx.moveTo(0, y);
+    ctx.bezierCurveTo(cw*0.25, y+(rng()-0.5)*12, cw*0.75, y+(rng()-0.5)*12, cw, y+(rng()-0.5)*6);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = rng()*cw, y = rng()*ch, r = cw*0.22+rng()*cw*0.22;
+    const zone = ctx.createRadialGradient(x, y, 0, x, y, r);
+    zone.addColorStop(0, `rgba(255,210,140,${0.07+rng()*0.05})`);
+    zone.addColorStop(1, 'rgba(255,210,140,0)');
+    ctx.fillStyle = zone; ctx.fillRect(0, 0, cw, ch);
+  }
+  const vig = ctx.createRadialGradient(cw/2, ch/2, ch*0.3, cw/2, ch/2, ch*0.85);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.14)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, cw, ch);
+  const sheen = ctx.createLinearGradient(0, 0, 0, ch*0.4);
+  sheen.addColorStop(0, 'rgba(255,215,140,0.20)'); sheen.addColorStop(1, 'rgba(255,215,140,0)');
+  ctx.fillStyle = sheen; ctx.fillRect(0, 0, cw, ch);
+}
+
+const KNOB_PALETTES = {
+  cream:  { body: ['#fff8e6','#f4e8c8','#dccaa0','#b09a72','#7a6440','#4a3a20'],
+            knurling: ['rgba(50,30,8,0.28)','rgba(255,240,200,0.18)'] },
+  yellow: { body: ['#fff5b0','#f7d024','#dba500','#a07000','#5a3e00','#241800'],
+            knurling: ['rgba(40,25,5,0.5)','rgba(255,235,150,0.28)'] },
+  red:    { body: ['#ffe0d0','#f04830','#c01810','#800808','#400404','#180202'],
+            knurling: ['rgba(40,5,5,0.55)','rgba(255,200,180,0.28)'] },
+  blue:   { body: ['#d8e6ff','#3d7be8','#1f4ec0','#102e80','#081842','#020714'],
+            knurling: ['rgba(0,5,20,0.55)','rgba(180,210,255,0.3)'] },
+  silver: { body: ['#f0f0f0','#d4d4d4','#acacac','#848484','#525252','#282828'],
+            knurling: ['rgba(0,0,0,0.32)','rgba(255,255,255,0.22)'] }
+};
+
+function drawKnob(canvas, angleDeg, paletteName) {
+  const palette = KNOB_PALETTES[paletteName] || KNOB_PALETTES.cream;
+  const body = palette.body, knurl = palette.knurling;
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height, cx = cw/2, cy = ch/2;
+  ctx.clearRect(0, 0, cw, ch);
+  const R = cw * 0.40, kr = R * 0.82;
+  const tickInner = R*1.18, tickOuter = R*1.30, numTicks = 11;
+  for (let i = 0; i < numTicks; i++) {
+    const t = i/(numTicks-1), knobAng = -135+t*270;
+    const rad = (knobAng-90)*Math.PI/180;
+    const cosA = Math.cos(rad), sinA = Math.sin(rad);
+    const x1=cx+cosA*tickInner, y1=cy+sinA*tickInner, x2=cx+cosA*tickOuter, y2=cy+sinA*tickOuter;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.strokeStyle='rgba(15,8,0,0.7)'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1-sinA*0.6,y1+cosA*0.6); ctx.lineTo(x2-sinA*0.6,y2+cosA*0.6);
+    ctx.strokeStyle='rgba(255,220,170,0.18)'; ctx.lineWidth=0.8; ctx.stroke();
+  }
+  const ss = ctx.createRadialGradient(cx, cy+R*0.3, R*0.1, cx, cy, R*1.1);
+  ss.addColorStop(0,'rgba(0,0,0,0)'); ss.addColorStop(1,'rgba(0,0,0,0.65)');
+  ctx.beginPath(); ctx.arc(cx,cy,R*1.08,0,Math.PI*2); ctx.fillStyle=ss; ctx.fill();
+  const sg = ctx.createRadialGradient(cx-R*0.2, cy-R*0.2, R*0.05, cx, cy, R);
+  sg.addColorStop(0,'#3a2a14'); sg.addColorStop(0.5,'#1f1608'); sg.addColorStop(1,'#0f0a04');
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.97,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,210,160,0.06)'; ctx.lineWidth=2; ctx.stroke();
+  const ds = ctx.createRadialGradient(cx, cy+kr*0.15, kr*0.5, cx, cy+kr*0.2, kr*1.1);
+  ds.addColorStop(0,'rgba(0,0,0,0.45)'); ds.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(cx,cy+kr*0.08,kr*1.05,0,Math.PI*2); ctx.fillStyle=ds; ctx.fill();
+  const kg = ctx.createRadialGradient(cx-kr*0.3, cy-kr*0.3, 0, cx+kr*0.1, cy+kr*0.1, kr*1.05);
+  body.forEach((c,i) => kg.addColorStop([0,0.18,0.45,0.72,0.88,1][i], c));
+  ctx.beginPath(); ctx.arc(cx,cy,kr,0,Math.PI*2); ctx.fillStyle=kg; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,kr*0.84,0,Math.PI*2);
+  ctx.strokeStyle=knurl[0]; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,kr*0.84,0,Math.PI*2);
+  ctx.strokeStyle=knurl[1]; ctx.lineWidth=1; ctx.stroke();
+  const spec = ctx.createRadialGradient(cx-kr*0.28, cy-kr*0.32, 0, cx-kr*0.1, cy-kr*0.1, kr*0.6);
+  spec.addColorStop(0,'rgba(255,255,255,0.72)'); spec.addColorStop(0.35,'rgba(255,255,255,0.22)');
+  spec.addColorStop(0.7,'rgba(255,255,255,0.06)'); spec.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,kr,0,Math.PI*2); ctx.fillStyle=spec; ctx.fill();
+  const ao = ctx.createRadialGradient(cx, cy+kr*0.55, 0, cx, cy, kr);
+  ao.addColorStop(0,'rgba(0,0,0,0.22)'); ao.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,kr,0,Math.PI*2); ctx.fillStyle=ao; ctx.fill();
+  const rad2 = angleDeg*Math.PI/180;
+  const cos = Math.cos(rad2-Math.PI/2), sin = Math.sin(rad2-Math.PI/2);
+  ctx.beginPath();
+  ctx.moveTo(cx+cos*kr*0.25, cy+sin*kr*0.25);
+  ctx.lineTo(cx+cos*kr*0.74, cy+sin*kr*0.74);
+  ctx.strokeStyle='#0a0500'; ctx.lineWidth=2.6; ctx.lineCap='round'; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx+cos*kr*0.25, cy+sin*kr*0.25);
+  ctx.lineTo(cx+cos*kr*0.74, cy+sin*kr*0.74);
+  ctx.strokeStyle='rgba(255,255,255,0.14)'; ctx.lineWidth=0.7; ctx.stroke();
+}
+
+/* ============================================================
+   STATE — single source of truth across all views
+   ============================================================ */
+const state = {
+  pitch: 0, cutoff: 0, resonance: -135,
+  attack: -135, release: -80, rate: 0,
+  wave: 'sine'
+};
+const knobBindings = {};
+
+function bindKnob(canvasId, stateKey, paletteName) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (!knobBindings[stateKey]) knobBindings[stateKey] = [];
+  knobBindings[stateKey].push({ canvas, palette: paletteName });
+  drawKnob(canvas, state[stateKey], paletteName);
+
+  let dragging = false, lastY = 0;
+  canvas.addEventListener('mousedown', e => { dragging = true; lastY = e.clientY; e.preventDefault(); });
+  canvas.addEventListener('touchstart', e => { dragging = true; lastY = e.touches[0].clientY; e.preventDefault(); }, {passive:false});
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    state[stateKey] = Math.max(-135, Math.min(135, state[stateKey] + (lastY - e.clientY)));
+    lastY = e.clientY;
+    redrawKnob(stateKey);
+    onKnobChange(stateKey);
+  });
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    state[stateKey] = Math.max(-135, Math.min(135, state[stateKey] + (lastY - e.touches[0].clientY)));
+    lastY = e.touches[0].clientY;
+    redrawKnob(stateKey);
+    onKnobChange(stateKey);
+  }, {passive:false});
+  document.addEventListener('mouseup',  () => { dragging = false; });
+  document.addEventListener('touchend', () => { dragging = false; });
+}
+
+function redrawKnob(stateKey) {
+  (knobBindings[stateKey] || []).forEach(({canvas, palette}) => {
+    drawKnob(canvas, state[stateKey], palette);
+  });
+}
+function setStateAndRedraw(stateKey, value) {
+  state[stateKey] = value;
+  redrawKnob(stateKey);
+  onKnobChange(stateKey);
+}
+
+function onKnobChange(stateKey) {
+  switch(stateKey) {
+    case 'pitch':
+      Object.entries(activeNotes).forEach(([id, n]) => {
+        n.osc.frequency.setTargetAtTime(n.baseFreq * getPitchMult(), n.osc.context.currentTime, 0.005);
+      });
+      break;
+    case 'cutoff':
+    case 'resonance':
+      ensureChain(); applyFilterParams();
+      break;
+    case 'attack':
+    case 'release':
+      break;
+    case 'rate':
+      restartArp(); break;
+  }
+}
+
+/* ============================================================
+   AUDIO ENGINE — copied from synth.html, single chain shared
+   ============================================================ */
+let audioCtx = null;
+let inputGain = null, saturator = null;
+let filterA = null, filterB = null, masterGain = null;
+let analyser = null;
+let activeNotes = {};
+let latchOn = false;
+
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function makeSaturationCurve() {
+  const n = 1024, curve = new Float32Array(n), drive = 0.6;
+  for (let i = 0; i < n; i++) {
+    const x = (i/(n-1))*2 - 1;
+    curve[i] = Math.tanh(x * drive);
+  }
+  return curve;
+}
+function ensureChain() {
+  const ctx = getCtx();
+  if (!filterA) {
+    inputGain = ctx.createGain(); inputGain.gain.value = 1.4;
+    saturator = ctx.createWaveShaper();
+    saturator.curve = makeSaturationCurve(); saturator.oversample = '4x';
+    filterA = ctx.createBiquadFilter(); filterA.type = 'lowpass';
+    filterB = ctx.createBiquadFilter(); filterB.type = 'lowpass';
+    masterGain = ctx.createGain(); masterGain.gain.value = 0.5;
+    inputGain.connect(filterA);
+    filterA.connect(filterB);
+    filterB.connect(saturator);
+    saturator.connect(masterGain);
+    masterGain.connect(ctx.destination);
+
+    // Analyser node — parallel tap off the saturator for the oscilloscope.
+    // Doesn't affect audio flow, just reads it.
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.0;
+    saturator.connect(analyser);
+
+    applyFilterParams();
+  }
+}
+function applyFilterParams() {
+  if (!filterA) return;
+  const cT = (state.cutoff + 135) / 270;
+  const rT = (state.resonance + 135) / 270;
+  const cutoffFreq = 80 * Math.pow(100, cT);
+  const Q1 = 0.5 + rT * 39.5;
+  const Q2 = 0.5 + rT * 3;
+  const t = filterA.context.currentTime;
+  filterA.frequency.setTargetAtTime(cutoffFreq, t, 0.005);
+  filterA.Q.setTargetAtTime(Q1, t, 0.005);
+  filterB.frequency.setTargetAtTime(cutoffFreq, t, 0.005);
+  filterB.Q.setTargetAtTime(Q2, t, 0.005);
+}
+function getPitchMult()   { return Math.pow(2, state.pitch / 220); }
+function getAttackTime()  { const t = (state.attack + 135) / 270;  return 0.003 * Math.pow(833, t); }
+function getReleaseTime() { const t = (state.release + 135) / 270; return 0.04  * Math.pow(250, t); }
+
+function selectWave(btn) {
+  state.wave = btn.dataset.wave;
+  document.querySelectorAll('.wave-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.wave === state.wave);
+  });
+  Object.values(activeNotes).forEach(n => { n.osc.type = state.wave; });
+}
+function toggleLatch() {
+  latchOn = !latchOn;
+  document.querySelectorAll('.latch-housing').forEach(h => h.classList.toggle('on', latchOn));
+  if (!latchOn) document.querySelectorAll('.white-key.pressed, .black-key.pressed').forEach(k => releaseHeldKey(k));
+}
+
+const heldKeys = [];
+function isHeld(el) { return heldKeys.indexOf(el) !== -1; }
+function addHeldKey(el) { if (!isHeld(el)) { heldKeys.push(el); el.classList.add('pressed'); } }
+function releaseHeldKey(el) {
+  const idx = heldKeys.indexOf(el);
+  if (idx !== -1) heldKeys.splice(idx, 1);
+  el.classList.remove('pressed');
+  const id = el.dataset.freq;
+  if (activeNotes[id]) stopActiveNote(id);
+}
+function playNote(el) {
+  if (latchOn && isHeld(el)) { releaseHeldKey(el); return; }
+  addHeldKey(el);
+  if (!arpOn) {
+    Object.keys(activeNotes).forEach(id => {
+      if (id !== el.dataset.freq) stopActiveNote(id);
+    });
+    triggerNote(el);
+  }
+}
+function stopNote(el) { if (latchOn) return; releaseHeldKey(el); }
+function triggerNote(el) {
+  const id = el.dataset.freq;
+  if (activeNotes[id]) return;
+  const ctx = getCtx(); ensureChain();
+  const osc = ctx.createOscillator(); const gain = ctx.createGain();
+  osc.type = state.wave;
+  osc.frequency.value = parseFloat(id) * getPitchMult();
+  const attack = getAttackTime();
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.4, now + attack);
+  osc.connect(gain); gain.connect(inputGain); osc.start();
+  activeNotes[id] = { osc, gain, baseFreq: parseFloat(id) };
+}
+function stopActiveNote(id) {
+  const node = activeNotes[id]; if (!node) return;
+  const ctx = getCtx();
+  const release = getReleaseTime();
+  const now = ctx.currentTime;
+  node.gain.gain.cancelScheduledValues(now);
+  node.gain.gain.setValueAtTime(node.gain.gain.value, now);
+  node.gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
+  node.osc.stop(now + release + 0.05);
+  delete activeNotes[id];
+}
+document.addEventListener('mouseup', () => {
+  if (!latchOn) [...heldKeys].forEach(k => releaseHeldKey(k));
+});
+
+/* ARP */
+let arpOn = false, arpInterval = null, arpIndex = 0;
+function getArpIntervalMs() { const t = (state.rate + 135) / 270; return 1000 * Math.pow(0.125, t); }
+function toggleArp() {
+  arpOn = !arpOn;
+  document.getElementById('arpSwitch').classList.toggle('on', arpOn);
+  if (arpOn) { arpIndex = 0; startArp(); }
+  else {
+    stopArp();
+    if (heldKeys.length > 0) {
+      Object.keys(activeNotes).forEach(id => stopActiveNote(id));
+      triggerNote(heldKeys[heldKeys.length - 1]);
+    }
+  }
+}
+function startArp()  { if (arpInterval) clearInterval(arpInterval); arpInterval = setInterval(arpTick, getArpIntervalMs()); }
+function restartArp(){ if (!arpOn) return; if (arpInterval) clearInterval(arpInterval); arpInterval = setInterval(arpTick, getArpIntervalMs()); }
+function stopArp()   { if (arpInterval) { clearInterval(arpInterval); arpInterval = null; } Object.keys(activeNotes).forEach(id => stopActiveNote(id)); }
+function arpTick() {
+  if (heldKeys.length === 0) { Object.keys(activeNotes).forEach(id => stopActiveNote(id)); return; }
+  Object.keys(activeNotes).forEach(id => stopActiveNote(id));
+  const sorted = [...heldKeys].sort((a,b) => parseFloat(a.dataset.freq) - parseFloat(b.dataset.freq));
+  arpIndex = arpIndex % sorted.length;
+  triggerNote(sorted[arpIndex]);
+  arpIndex++;
+}
+
+/* ============================================================
+   SCREEN STATE
+   ============================================================ */
+const screens = ['welcome','oscillator','filter','envelope','synth','done'];
+let currentScreen = 'welcome';
+const NAMEPLATES = {
+  welcome:    'SSA',
+  oscillator: 'SSA OSC-01',
+  filter:     'SSA FLT-01',
+  envelope:   'SSA ENV-01',
+  synth:      'SSA SYNTH-01',
+  done:       'SSA'
+};
+
+function goTo(name) {
+  // Stop sound on screen change
+  Object.keys(activeNotes).forEach(id => stopActiveNote(id));
+  if (arpOn) toggleArp();
+  if (latchOn) toggleLatch();
+
+  currentScreen = name;
+  screens.forEach(s => {
+    const v = document.getElementById('view-' + s);
+    if (v) v.hidden = (s !== name);
+  });
+
+  const isLesson = ['oscillator','filter','envelope'].includes(name);
+  const isSynth  = name === 'synth';
+  const playable = isLesson || isSynth;
+
+  document.getElementById('lessonKeysRow').hidden = !isLesson;
+  document.getElementById('synthKeys').hidden  = !isSynth;
+  document.getElementById('latchRow').hidden   = !isSynth;
+  document.getElementById('navRow').hidden     = !playable;
+  document.getElementById('arpModule').hidden  = !isSynth;
+  document.getElementById('synthScopeShell').hidden = !isSynth;
+  // Hide the Hold switch on the envelope screen — kids need to feel attack & release
+  // by physically pressing and releasing the key. visibility (not display) keeps the
+  // grid column so the keys stay dead-centre.
+  document.getElementById('lessonLatch').style.visibility = (name === 'envelope') ? 'hidden' : 'visible';
+
+  // Panel size + nameplate + hero mode for centring
+  const panel = document.getElementById('panelWrap');
+  panel.classList.toggle('size-lg', isSynth);
+  document.getElementById('panelContent').classList.toggle('hero-mode', name === 'welcome' || name === 'done');
+  const nameplate = document.querySelector('.nameplate');
+  nameplate.hidden = (name === 'welcome' || name === 'done');
+  document.getElementById('nameplateText').textContent = NAMEPLATES[name];
+
+  // Nav button labels
+  const back = document.getElementById('navBack');
+  const next = document.getElementById('navNext');
+  back.style.visibility = (screens.indexOf(name) <= 1) ? 'hidden' : 'visible';
+  next.textContent = (name === 'synth') ? 'Finish' : 'Next';
+
+  applyScreenDefaults(name);
+
+  // Wood canvas needs to be redrawn after width transition completes
+  // and after view content settles
+  requestAnimationFrame(() => {
+    redrawWood();
+    setTimeout(redrawWood, 360);  // after panel width transition
+  });
+
+  // Refresh all knob canvases — visible ones may have been hidden before
+  Object.keys(knobBindings).forEach(k => redrawKnob(k));
+}
+
+function goNext() {
+  const idx = screens.indexOf(currentScreen);
+  if (idx < screens.length - 1) goTo(screens[idx + 1]);
+}
+function goBack() {
+  const idx = screens.indexOf(currentScreen);
+  if (idx > 1) goTo(screens[idx - 1]);
+}
+function startApp() {
+  getCtx(); ensureChain();
+  goTo('oscillator');
+}
+
+function applyScreenDefaults(name) {
+  switch(name) {
+    case 'oscillator':
+      setStateAndRedraw('cutoff',    135);
+      setStateAndRedraw('resonance', -135);
+      setStateAndRedraw('attack',    -135);
+      setStateAndRedraw('release',   -80);
+      setWaveform('sine');
+      break;
+    case 'filter':
+      setWaveform('sawtooth');
+      setStateAndRedraw('attack',  -135);
+      setStateAndRedraw('release', -80);
+      if (state.cutoff === 135) setStateAndRedraw('cutoff', 0);
+      break;
+    case 'envelope':
+      setWaveform('sawtooth');
+      setStateAndRedraw('cutoff',    135);
+      setStateAndRedraw('resonance', -135);
+      setStateAndRedraw('attack',    -54);   // ~30% knob travel → ~23ms attack, audible soft ramp on first note
+      break;
+    case 'synth':
+      // leave parameters as set
+      break;
+  }
+}
+
+function setWaveform(wave) {
+  state.wave = wave;
+  document.querySelectorAll('.wave-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.wave === wave);
+  });
+}
+
+/* ============================================================
+   KEY EVENT WIRING
+   ============================================================ */
+function wireKeys() {
+  document.querySelectorAll('.white-key, .black-key').forEach(k => {
+    k.addEventListener('mousedown', () => playNote(k));
+    k.addEventListener('mouseup',   () => stopNote(k));
+    k.addEventListener('mouseleave', () => { if (!latchOn && !arpOn) stopNote(k); });
+    k.addEventListener('touchstart', e => { e.preventDefault(); playNote(k); }, {passive:false});
+    k.addEventListener('touchend',   e => { e.preventDefault(); stopNote(k); }, {passive:false});
+  });
+}
+
+/* ============================================================
+   SPEAKER GRID DOTS
+   ============================================================ */
+function fillSpeakerGrid(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < 15 * 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'sdot';
+    el.appendChild(d);
+  }
+}
+
+/* ============================================================
+   WOOD REDRAW
+   ============================================================ */
+function redrawWood() {
+  const wrap = document.getElementById('panelWrap');
+  drawWood(document.getElementById('woodCanvas'), wrap.offsetWidth, wrap.offsetHeight);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('load', () => {
+  bindKnob('pitchCanvasOsc',     'pitch',     'cream');
+  bindKnob('pitchCanvasSyn',     'pitch',     'cream');
+  bindKnob('cutoffCanvasFlt',    'cutoff',    'yellow');
+  bindKnob('cutoffCanvasSyn',    'cutoff',    'yellow');
+  bindKnob('resonanceCanvasFlt', 'resonance', 'red');
+  bindKnob('resonanceCanvasSyn', 'resonance', 'red');
+  bindKnob('attackCanvasEnv',    'attack',    'blue');
+  bindKnob('attackCanvasSyn',    'attack',    'blue');
+  bindKnob('releaseCanvasEnv',   'release',   'silver');
+  bindKnob('releaseCanvasSyn',   'release',   'silver');
+  bindKnob('rateCanvas',         'rate',      'cream');
+
+  fillSpeakerGrid('speakerTop');
+  fillSpeakerGrid('speakerBot');
+  wireKeys();
+
+  // Initial wood draw, then again once layout is fully settled
+  redrawWood();
+  setTimeout(redrawWood, 50);
+
+  // Redraw on window resize
+  window.addEventListener('resize', () => { redrawWood(); });
+});
+
+/* ============================================================
+   CRT VISUALISATIONS
+   ============================================================ */
+const CRT_GREEN     = '#28dd5a';
+const CRT_GREEN_DIM = 'rgba(40, 221, 90, 0.12)';
+const CRT_BG        = '#060e04';
+
+function drawScope() {
+  requestAnimationFrame(drawScope);
+  if (!analyser) return;
+  // Same live scope on all three lesson screens + synth — each has its own canvas
+  const canvasId =
+    currentScreen === 'oscillator' ? 'scopeCanvas' :
+    currentScreen === 'filter'     ? 'filterCurveCanvas' :
+    currentScreen === 'envelope'   ? 'envelopeCurveCanvas' :
+    currentScreen === 'synth'      ? 'scopeCanvasSyn' : null;
+  if (!canvasId) return;
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+
+  // Phosphor afterglow — fade previous frame slightly instead of clearing
+  ctx.fillStyle = 'rgba(6, 14, 4, 0.35)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Faint centre line
+  ctx.strokeStyle = CRT_GREEN_DIM;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h/2);
+  ctx.lineTo(w, h/2);
+  ctx.stroke();
+
+  // Read time-domain data
+  const dataArray = new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(dataArray);
+
+  // Trigger on rising zero crossing so the trace doesn't slide horizontally
+  let startIdx = 0;
+  for (let i = 1; i < dataArray.length / 2; i++) {
+    if (dataArray[i-1] <= 128 && dataArray[i] > 128) { startIdx = i; break; }
+  }
+
+  // Draw the waveform with green glow
+  ctx.strokeStyle = CRT_GREEN;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = CRT_GREEN;
+  ctx.shadowBlur = 8;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+
+  const drawLen = Math.min(dataArray.length - startIdx, Math.floor(dataArray.length / 2));
+  for (let i = 0; i < drawLen; i++) {
+    const x = (i / drawLen) * w;
+    const v = (dataArray[startIdx + i] - 128) / 128;
+    const y = h/2 - v * (h * 0.4);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+/* Start the oscilloscope rAF loop on load; it routes to the active lesson screen's canvas */
+window.addEventListener('load', () => { drawScope(); });
+
+/* ============================================================
+   PWA
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
