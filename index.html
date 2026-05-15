@@ -557,7 +557,7 @@ body {
 .keys-row {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items: start;
   width: 100%;
   column-gap: 24px;
 }
@@ -835,6 +835,10 @@ html { overflow-x: hidden; }
     font-size: 9px;
     letter-spacing: 2.5px;
   }
+  .panel-wrap.size-lg .latch-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
 
   /* Smaller wave buttons */
   .panel-wrap.size-lg .wave-buttons.wave-stack .wave-btn {
@@ -851,12 +855,19 @@ html { overflow-x: hidden; }
   #synthKeys {
     height: 60px;
     margin-top: 6px;
+    /* Shift right via margin-left so the latch can sit to the left.
+       margin moves the whole element, so black-key positions don't need recalculating.
+       Value chosen so [latch + 8px gap + keys] sits centred in the panel. */
+    justify-content: flex-start;
+    margin-left: calc((100vw - 328px) / 2);
   }
+  /* Keep keys at exact 40px — don't let flex shrink them when the row overhangs */
   #synthKeys .white-key {
     width: 40px;
     height: 60px;
     padding-bottom: 4px;
     font-size: 8px;
+    flex-shrink: 0;
   }
   #synthKeys .black-key {
     width: 24px;
@@ -870,16 +881,26 @@ html { overflow-x: hidden; }
   #synthKeys #key-gs2 { left: calc(40px * 5 - 12px); }
   #synthKeys #key-as2 { left: calc(40px * 6 - 12px); }
 
-  /* Latch: pull out of absolute flow so it sits naturally below the keys */
+  /* Hide the green latch LED on synth — at right: -18 it would extend into the keys.
+     The lever position still shows on/off state. */
+  .panel-wrap.size-lg .latch-light { display: none; }
+
+  /* Latch: positioned to the LEFT of the keys.
+     bottom: 139 puts the housing top exactly at keys top (latch-row 71px, keys 60px,
+     bottom: 139 + 71 = 210 = padding-bottom 150 + keys-height 60 = keys top from bottom). */
   .panel-wrap.size-lg .latch-row {
-    position: static;
+    position: absolute;
+    bottom: 139px;
+    left: calc((100vw - 374px) / 2);
     transform: none;
+    width: auto;
   }
 
-  /* Arp tucked to bottom-left */
+  /* Arp centred horizontally at the bottom */
   #arpModule {
     bottom: 14px;
-    left: 10px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   /* Hide nameplate and scope on mobile — would clash with arp */
