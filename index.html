@@ -775,30 +775,93 @@ body {
 .brass-back:active { transform: translateY(1px); }
 
 /* ============================================================
-   MOBILE SCALING
-   Lesson screens (580px) sit fine on phones — only the synth
-   screen (900px) needs to scale down.
-   Negative margins compensate for the extra layout space the
-   transformed element still occupies.
+   MOBILE — synth screen responsive layout
+   Lesson screens (580px) work fine on phones.
+   Only .size-lg (synth, 900px) needs fixing.
    ============================================================ */
-html, body { overflow-x: hidden; }
+html { overflow-x: hidden; }
 
-@media (max-width: 940px) {
+@media (max-width: 500px) {
+  /* Panel fills viewport */
   .panel-wrap.size-lg {
-    transform: scale(0.82);
-    transform-origin: center center;
-    margin-top: -54px;
-    margin-bottom: -54px;
+    width: calc(100vw - 16px);
   }
-}
+  /* Tighter padding + bottom space reserved for absolutely-positioned arp */
+  .panel-wrap.size-lg .panel-content {
+    padding: 20px 14px 130px;
+    gap: 10px;
+    min-height: auto;
+  }
 
-@media (max-width: 480px) {
-  .panel-wrap.size-lg {
-    transform: scale(0.43);
-    transform-origin: center center;
-    margin-top: -171px;
-    margin-bottom: -171px;
+  /* OSC + FILTER on top row, ENV spans full width below */
+  .sections-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
+  .sections-row .section-col:nth-child(3) {
+    grid-column: 1 / -1;
+    align-items: center;
+  }
+  .sections-row .section-col:nth-child(3) .knob-pair {
+    gap: 28px;
+  }
+
+  /* Remove column dividers — don't work in new layout */
+  .section-col + .section-col::before { display: none; }
+
+  /* Smaller knobs */
+  .panel-wrap.size-lg .knob-area.sm {
+    width: 76px;
+    height: 76px;
+  }
+  .panel-wrap.size-lg .knob-area.sm canvas {
+    width: 76px !important;
+    height: 76px !important;
+  }
+  .section-col .knob-pair { gap: 4px; }
+
+  /* Smaller wave buttons */
+  .panel-wrap.size-lg .wave-buttons.wave-stack .wave-btn {
+    width: 68px;
+    height: 26px;
+  }
+  .panel-wrap.size-lg .wave-buttons.wave-stack .wave-btn svg {
+    width: 22px;
+    height: 16px;
+  }
+  .panel-wrap.size-lg .wave-buttons.wave-stack { gap: 3px; }
+
+  /* Keys: horizontal scroll */
+  #synthKeys {
+    overflow-x: auto;
+    width: 100%;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-left: 14px;
+  }
+  #synthKeys::-webkit-scrollbar { display: none; }
+
+  /* Latch: pull out of absolute flow so it sits naturally below the keys */
+  .panel-wrap.size-lg .latch-row {
+    position: static;
+    transform: none;
+  }
+
+  /* Arp: tuck to bottom-left of narrower panel */
+  #arpModule {
+    bottom: 14px;
+    left: 10px;
+  }
+
+  /* Nameplate: match new bottom */
+  .nameplate {
+    bottom: 14px;
+    right: 10px;
+  }
+
+  /* Scope: hide — too small to be useful on phone */
+  #synthScopeShell { display: none !important; }
 }
 </style>
 </head>
