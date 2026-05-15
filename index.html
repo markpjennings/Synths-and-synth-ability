@@ -788,7 +788,7 @@ html { overflow-x: hidden; }
 
   /* Panel fills viewport */
   .panel-wrap.size-lg {
-    width: calc(100vw - 16px);
+    width: 100vw;
   }
   /* Tighter padding; extra bottom space for absolutely-positioned arp */
   .panel-wrap.size-lg .panel-content {
@@ -859,7 +859,7 @@ html { overflow-x: hidden; }
        margin moves the whole element, so black-key positions don't need recalculating.
        Value chosen so [latch + 8px gap + keys] sits centred in the panel. */
     justify-content: flex-start;
-    margin-left: calc((100vw - 328px) / 2);
+    margin-left: calc((100vw - 310px) / 2);
   }
   /* Keep keys at exact 40px — don't let flex shrink them when the row overhangs */
   #synthKeys .white-key {
@@ -891,7 +891,7 @@ html { overflow-x: hidden; }
   .panel-wrap.size-lg .latch-row {
     position: absolute;
     bottom: 139px;
-    left: calc((100vw - 374px) / 2);
+    left: calc((100vw - 358px) / 2);
     transform: none;
     width: auto;
   }
