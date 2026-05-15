@@ -776,22 +776,29 @@ body {
 
 /* ============================================================
    MOBILE — synth screen responsive layout
-   Lesson screens (580px) work fine on phones.
-   Only .size-lg (synth, 900px) needs fixing.
+   Lesson screens (580px) untouched — they work as-is on phones.
+   Only .size-lg (synth, 900px) needs reflowing.
    ============================================================ */
 html { overflow-x: hidden; }
 
 @media (max-width: 500px) {
+  /* Hide decorative screws on mobile — they clash with nav buttons,
+     arp module, and Begin / Keep Playing buttons */
+  .screw { display: none; }
+
   /* Panel fills viewport */
   .panel-wrap.size-lg {
     width: calc(100vw - 16px);
   }
-  /* Tighter padding + bottom space reserved for absolutely-positioned arp */
+  /* Tighter padding; extra bottom space for absolutely-positioned arp */
   .panel-wrap.size-lg .panel-content {
-    padding: 20px 14px 130px;
+    padding: 20px 14px 150px;
     gap: 10px;
     min-height: auto;
   }
+
+  /* Remove section-col horizontal padding — was clipping the right knob */
+  .panel-wrap.size-lg .section-col { padding: 0; }
 
   /* OSC + FILTER on top row, ENV spans full width below */
   .sections-row {
@@ -805,8 +812,7 @@ html { overflow-x: hidden; }
   .sections-row .section-col:nth-child(3) .knob-pair {
     gap: 28px;
   }
-
-  /* Remove column dividers — don't work in new layout */
+  /* Column dividers don't make sense in the new layout */
   .section-col + .section-col::before { display: none; }
 
   /* Smaller knobs */
@@ -818,7 +824,17 @@ html { overflow-x: hidden; }
     width: 76px !important;
     height: 76px !important;
   }
-  .section-col .knob-pair { gap: 4px; }
+  .panel-wrap.size-lg .knob-pair { gap: 4px; }
+
+  /* Tighter typography so labels don't push columns wider than knobs */
+  .panel-wrap.size-lg .knob-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+  .panel-wrap.size-lg .section-header {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+  }
 
   /* Smaller wave buttons */
   .panel-wrap.size-lg .wave-buttons.wave-stack .wave-btn {
@@ -831,16 +847,28 @@ html { overflow-x: hidden; }
   }
   .panel-wrap.size-lg .wave-buttons.wave-stack { gap: 3px; }
 
-  /* Keys: horizontal scroll */
+  /* Synth keys: shrink so all 13 fit (8 white × 40px = 320px total) */
   #synthKeys {
-    overflow-x: auto;
-    width: 100%;
-    justify-content: flex-start;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-left: 14px;
+    height: 60px;
+    margin-top: 6px;
   }
-  #synthKeys::-webkit-scrollbar { display: none; }
+  #synthKeys .white-key {
+    width: 40px;
+    height: 60px;
+    padding-bottom: 4px;
+    font-size: 8px;
+  }
+  #synthKeys .black-key {
+    width: 24px;
+    height: 38px;
+  }
+  /* Reposition black keys for the new 40px white-key spacing
+     (black centred on boundary: left = index × 40 − 12) */
+  #synthKeys #key-cs2 { left: calc(40px * 1 - 12px); }
+  #synthKeys #key-ds2 { left: calc(40px * 2 - 12px); }
+  #synthKeys #key-fs2 { left: calc(40px * 4 - 12px); }
+  #synthKeys #key-gs2 { left: calc(40px * 5 - 12px); }
+  #synthKeys #key-as2 { left: calc(40px * 6 - 12px); }
 
   /* Latch: pull out of absolute flow so it sits naturally below the keys */
   .panel-wrap.size-lg .latch-row {
@@ -848,19 +876,14 @@ html { overflow-x: hidden; }
     transform: none;
   }
 
-  /* Arp: tuck to bottom-left of narrower panel */
+  /* Arp tucked to bottom-left */
   #arpModule {
     bottom: 14px;
     left: 10px;
   }
 
-  /* Nameplate: match new bottom */
-  .nameplate {
-    bottom: 14px;
-    right: 10px;
-  }
-
-  /* Scope: hide — too small to be useful on phone */
+  /* Hide nameplate and scope on mobile — would clash with arp */
+  .nameplate { display: none; }
   #synthScopeShell { display: none !important; }
 }
 </style>
