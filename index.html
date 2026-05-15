@@ -773,6 +773,33 @@ body {
   text-shadow: 0 -0.5px 0 rgba(0,0,0,0.2), 0 1px 0 rgba(255,235,180,0.4);
 }
 .brass-back:active { transform: translateY(1px); }
+
+/* ============================================================
+   MOBILE SCALING
+   Lesson screens (580px) sit fine on phones — only the synth
+   screen (900px) needs to scale down.
+   Negative margins compensate for the extra layout space the
+   transformed element still occupies.
+   ============================================================ */
+html, body { overflow-x: hidden; }
+
+@media (max-width: 940px) {
+  .panel-wrap.size-lg {
+    transform: scale(0.82);
+    transform-origin: center center;
+    margin-top: -54px;
+    margin-bottom: -54px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-wrap.size-lg {
+    transform: scale(0.43);
+    transform-origin: center center;
+    margin-top: -171px;
+    margin-bottom: -171px;
+  }
+}
 </style>
 </head>
 <body>
