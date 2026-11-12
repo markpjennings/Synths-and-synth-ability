@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synths &amp; Synth-ability · Mark Jennings</title>
+<meta name="description" content="Project management case study by Mark Jennings: a browser synth that teaches children aged 8 to 12 how sound is made, planned and built in four sprints.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Synths &amp; Synth-ability · Mark Jennings">
+<meta property="og:description" content="Project management case study: a browser synth that teaches children aged 8 to 12 how sound is made, planned and built in four sprints.">
+<meta property="og:url" content="https://markpjennings.github.io/Synths-and-synth-ability/case-study/">
+<meta property="og:image" content="https://markpjennings.github.io/Synths-and-synth-ability/case-study/images/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500&amp;family=Saira+Condensed:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens ---------- */
+:root {
+  color-scheme: dark;
+  --black: #000;
+  --ink: #eee7d6;      /* the cream of the app's keys */
+  --dim: #a39c8c;
+  --hair: #2c2a26;
+  --trace: #2bc95a;    /* phosphor green of the app's oscilloscope */
+  /* The app's knob colours. Used only where they mean the control. */
+  --silver: #d6c9b8;   /* oscillator: pitch */
+  --gold: #d59f3b;     /* filter: cutoff */
+  --red: #b44846;      /* filter: resonance */
+  --blue: #576788;     /* envelope: attack */
+  --green: #546c52;    /* envelope: release */
+  /* The same hues lifted for use as text on black (all above 6:1). */
+  --silver-t: #b4bcc2; /* cool, so it reads as metal against the warm cream text */
+  --red-t: #d8716b;
+  --blue-t: #8a9cc4;
+  --green-t: #86a683;
+  --max: 1240px;
+  --gutter: clamp(20px, 5vw, 64px);
+  --head: 'Saira Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'Saira', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--black); color-scheme: dark; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--ink);
+  font: 400 1.125rem/1.55 var(--body);
+}
+@media (min-width: 700px) { body { font-size: 1.25rem; } }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--trace); outline-offset: 4px; }
+p { margin: 0 0 1em; max-width: 34em; }
+p:last-child { margin-bottom: 0; }
+figure { margin: 0; }
+.wrap { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; }
+
+h1, h2, h3, .kicker, .btn { font-family: var(--head); text-transform: uppercase; margin: 0; overflow-wrap: break-word; }
+@media (min-width: 1000px) { .nobr { white-space: nowrap; } }
+h1 { font-weight: 800; font-size: clamp(2.75rem, 13vw, 11rem); line-height: .86; letter-spacing: .005em; }
+h2 { font-weight: 800; font-size: clamp(2.25rem, 4.6vw, 3.75rem); line-height: .94; text-wrap: balance; }
+.decision h2 { font-size: clamp(2.9rem, 7.4vw, 6.5rem); line-height: .88; }
+.decision .kicker { font-size: clamp(1.15rem, 1.7vw, 1.5rem); letter-spacing: .2em; color: var(--trace); margin-bottom: .55em; }
+h2.sub { font-size: clamp(1.9rem, 3.4vw, 2.75rem); }
+h3 { font-weight: 700; font-size: 1.6rem; line-height: 1; letter-spacing: .04em; }
+.kicker { font-weight: 700; font-size: 1rem; line-height: 1.2; letter-spacing: .24em; color: var(--dim); margin-bottom: .9em; max-width: none; }
+
+/* ---------- The trace: page edge, opening, section breaks ---------- */
+.edge {
+  position: fixed; left: 0; top: 0; z-index: 5;
+  width: 2px; height: 100vh;
+  background: var(--trace); opacity: .5;
+  transform-origin: top; transform: scaleY(0);
+}
+.scope { margin: clamp(28px, 4vw, 56px) 0 0; }
+.scope svg { display: block; width: 100%; height: 96px; }
+.scope path, .trace path {
+  fill: none; stroke: var(--trace); stroke-width: 1.5;
+  stroke-linejoin: round; stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.trace { display: flex; align-items: center; }
+.trace::before, .trace::after { content: ""; border-top: 1.5px solid var(--trace); }
+.trace::before { flex: 0 0 max(var(--gutter), calc((100% - var(--max)) / 2)); }
+.trace::after { flex: 1; }
+.trace svg { flex: 0 0 240px; width: 240px; height: 40px; overflow: visible; }
+
+/* ---------- Opening ---------- */
+.open { padding-top: clamp(40px, 7vh, 88px); }
+.open-main { display: grid; gap: clamp(32px, 4vw, 56px) 56px; grid-template-areas: "text" "facts" "hero"; }
+.open-text { grid-area: text; } .open-main .hero { grid-area: hero; } .open-main .facts { grid-area: facts; margin: 0; }
+.open-main .hero img { width: 100%; }
+.eyebrow { font: 700 clamp(.95rem, 1.2vw, 1.1rem)/1.3 var(--head); letter-spacing: .22em; text-transform: uppercase; color: var(--trace); margin: 0 0 clamp(16px, 2vw, 24px); max-width: none; }
+.eyebrow span:last-child { white-space: nowrap; }
+@media (max-width: 599px) { .eyebrow span { display: block; } .eyebrow .dot { display: none; } }
+@media (max-width: 399px) { .eyebrow { letter-spacing: .14em; } }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.jump { display: inline-block; font: 700 1.05rem/1 var(--head); letter-spacing: .16em; text-transform: uppercase; color: var(--ink); text-underline-offset: .3em; }
+.jump:hover { color: var(--trace); }
+.open-row { display: grid; gap: 28px; margin-top: clamp(24px, 3vw, 40px); }
+.lead { font-size: clamp(1.45rem, 2.2vw, 2rem); line-height: 1.22; max-width: 17em; margin: 0; }
+.open-side p { margin-bottom: 1.3em; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px; }
+@media (min-width: 1000px) { .facts { grid-template-columns: repeat(4, 1fr); } }
+.facts div { border-top: 1px solid var(--hair); padding-top: 14px; min-width: 0; }
+.facts dt { font: 700 .95rem/1.2 var(--head); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+.facts dd { text-wrap: balance; margin: 0; font: 600 clamp(1.1rem, 1.48vw, 1.3rem)/1.2 var(--head); }
+.btn {
+  display: inline-block; max-width: 100%;
+  background: var(--ink); color: var(--black);
+  border: 2px solid var(--ink);
+  font-weight: 800; font-size: 1.15rem; line-height: 1; letter-spacing: .18em;
+  padding: .95em 1.3em .85em;
+  text-decoration: none;
+}
+.btn:hover { background: var(--black); color: var(--ink); }
+@media (max-width: 359px) { .btn { letter-spacing: .1em; padding-left: 1.1em; padding-right: 1.1em; } }
+@media (min-width: 1000px) {
+  .open-main { grid-template-columns: 5fr 6fr; grid-template-areas: "text hero" "facts facts"; align-items: center; }
+  .open-main .lead { font-size: clamp(1.4rem, 2vw, 1.75rem); max-width: none; text-wrap: balance; } /* two even lines in real Saira at 1024 to 1920 */
+  .open-main h1 { font-size: clamp(2.75rem, 6.2vw, 5.5rem); } /* measured in real Saira Condensed: the second line uses about 90% of its column at 1024, 1280 and 1440 */
+  .open-row { gap: 24px; }
+}
+
+/* ---------- Sections ----------
+   Four parts: context, the decisions, evidence, close.
+   Sections inside a part sit closer together; a green trace marks each break between parts. */
+.sec { padding: clamp(36px, 5vw, 68px) 0; }
+.part-end { padding-bottom: clamp(72px, 10vw, 136px); }
+.part-start { padding-top: clamp(72px, 10vw, 136px); }
+/* a section that continues the one before it: tight join, no gap of its own */
+.leads { padding-bottom: clamp(28px, 4vw, 52px); }
+.follows { padding-top: 0; }
+.grid { display: grid; gap: clamp(24px, 4vw, 56px) 48px; }
+@media (min-width: 900px) {
+  .grid { grid-template-columns: 5fr 7fr; }
+  .wide { grid-column: 1 / -1; }
+}
+/* stacked: heading, then text, then the visual, all down one column */
+.stack { display: grid; gap: 0; }
+.stack > h2, .stack > .head { margin-bottom: clamp(20px, 2.5vw, 32px); }
+.stack > .body { max-width: 34em; }
+.stack > figure, .stack > .wide { margin-top: clamp(36px, 5vw, 64px); }
+.decision .wrap { display: grid; gap: 0 48px; }
+.decision .head { margin-bottom: clamp(28px, 3.5vw, 48px); }
+.decision .body { max-width: 32em; font-size: clamp(1.15rem, 1.45vw, 1.35rem); line-height: 1.5; }
+.decision .wide { margin-top: clamp(40px, 5vw, 72px); }
+.shift { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; align-self: start; }
+.shift li { display: grid; grid-template-columns: 5.5em 1fr; gap: 16px; align-items: baseline; padding: 14px 0 16px; border-top: 1px solid var(--hair); }
+.shift li:last-child { border-bottom: 1px solid var(--hair); }
+.shift b { font: 700 .95rem/1.2 var(--head); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+.shift span { font: 600 clamp(1.35rem, 2vw, 1.7rem)/1.15 var(--head); }
+.shift .was span { color: var(--dim); }
+@media (min-width: 900px) {
+  .decision .wrap { grid-template-columns: 7fr 5fr; }
+  .decision .head, .decision .wide { grid-column: 1 / -1; }
+}
+@media (max-width: 899px) { .shift { margin-top: 32px; } }
+.brief h2 { margin-bottom: clamp(20px, 2.5vw, 32px); }
+.brief .brief-when { color: var(--dim); max-width: 20em; }
+.brief p:not(.pull) { font-size: clamp(1.2rem, 1.6vw, 1.4rem); line-height: 1.45; max-width: 30em; }
+.statement { font-size: clamp(1.45rem, 2.6vw, 2.15rem); line-height: 1.32; max-width: 30em; }
+.big { font-size: clamp(1.3rem, 2.1vw, 1.7rem); line-height: 1.42; max-width: 30em; }
+.pull {
+  font-family: var(--head); font-weight: 600;
+  font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.08;
+  max-width: 17em; margin: .7em 0; text-wrap: balance;
+}
+/* ---------- 4. Screens in a row ---------- */
+.strip { display: grid; gap: 32px clamp(16px, 2vw, 28px); }
+.shot { min-width: 0; }
+.ctl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin: 16px 0 0; font: 700 1rem/1.2 var(--head); letter-spacing: .16em; text-transform: uppercase; }
+.ctl dt { color: var(--ink); margin-right: 4px; }
+.ctl dd { margin: 0; }
+figcaption { color: var(--dim); max-width: 34em; margin-top: clamp(24px, 3vw, 36px); }
+@media (min-width: 700px) { .strip { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- 5. The app is the lesson ---------- */
+.pair { display: grid; gap: 28px; align-items: center; }
+.pair img { width: 100%; max-width: 460px; }
+.lesson-line { font-size: clamp(1.3rem, 2.1vw, 1.7rem); line-height: 1.42; max-width: 26em; }
+.lesson-line .pull { display: block; margin: 0 0 .45em; max-width: none; }
+.cutoff { color: var(--gold); }
+@media (min-width: 900px) { .pair { grid-template-columns: 5fr 7fr; gap: 48px; } }
+
+/* ---------- 6. Sprint timeline ----------
+   One trace, high during a sprint, low between them. Every column is one calendar day,
+   13 April to 1 June: sprint 6 days, gap 2, sprint 12, gap 2, sprint 12, gap 1, sprint 15. */
+.cal { --days: 6fr 2fr 12fr 2fr 12fr 1fr 15fr; }
+.cal-wave { display: grid; grid-template-columns: var(--days); height: 28px; }
+.cal-wave i { border: 0 solid var(--trace); }
+.cal-wave .on { border-width: 1.5px 1.5px 0 1.5px; }
+.cal-wave .off { border-bottom-width: 1.5px; margin: 0 -1.5px; }
+.sprints { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: 8fr 14fr 13fr 15fr; }
+.sprints li { min-width: 0; padding-right: 20px; }
+.sprints h3 { margin: 0 0 6px; }
+.sprints .dates { font: 700 1rem/1.2 var(--head); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+.sprints .what { max-width: 17em; }
+.sprints .what::first-letter { text-transform: uppercase; }
+@media (max-width: 799px) {
+  .sprints { grid-template-columns: 1fr 1fr; gap: 28px 0; }
+}
+/* ---------- 7. Fix now / backlog / won't do ---------- */
+.sort { display: grid; gap: 36px; }
+.sort > div { border-top: 1.5px solid var(--ink); padding-top: 20px; }
+.sort > .later { border-top-style: dashed; border-top-color: var(--dim); }
+.sort > .never { border-top-color: var(--hair); }
+.sort h3 { margin-bottom: 12px; font-size: clamp(1.6rem, 2.3vw, 2.1rem); }
+.sort p { font-size: clamp(1.1rem, 1.35vw, 1.25rem); line-height: 1.45; }
+.sort .never h3 { color: var(--dim); }
+.sort p { max-width: 19em; text-wrap: pretty; }
+.sort p::first-letter { text-transform: uppercase; }
+.sort img { margin-top: 28px; width: 100%; max-width: 380px; }
+@media (min-width: 700px) { .sort { grid-template-columns: repeat(2, 1fr); gap: 40px 48px; } }
+@media (min-width: 1100px) { .sort { grid-template-columns: repeat(4, 1fr); gap: 40px; } }
+.sort > .open-q { border-top-color: var(--trace); }
+
+.criteria { display: grid; gap: 32px; align-items: center; margin-top: clamp(40px, 6vw, 80px); }
+.criteria img { width: 100%; max-width: 460px; }
+@media (min-width: 900px) { .criteria { grid-template-columns: 5fr 7fr; gap: 48px; } }
+/* ---------- Part 2 heading ---------- */
+.part-head h2 { font-size: clamp(2.9rem, 6.2vw, 5.5rem); line-height: .88; }
+
+/* ---------- Dated entries from the decision log ---------- */
+.logged { display: block; font: 700 .95rem/1.2 var(--head); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); margin-top: 14px; }
+
+/* ---------- Two-column rows: what happened, and what I did ---------- */
+.rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.rows li { display: grid; gap: 12px 48px; padding: 22px 0 24px; border-top: 1px solid var(--hair); }
+.rows li:last-child { border-bottom: 1px solid var(--hair); }
+.rows li > div { min-width: 0; }
+.rows b { font: 700 .95rem/1.2 var(--head); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); display: block; margin-bottom: 6px; }
+.rows p { margin: 0; font-size: clamp(1.1rem, 1.35vw, 1.25rem); line-height: 1.45; }
+@media (min-width: 700px) { .rows li { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- 10. Outcome, the live app, contact ---------- */
+.play { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 20px; text-decoration: none; }
+.play img { width: 100%; transition: transform .2s ease; }
+.play .btn { pointer-events: none; }
+a.play:hover img { transform: translateY(-3px); }
+a.play:hover .btn { background: var(--black); color: var(--ink); }
+.live { width: min(100%, 902px); aspect-ratio: 902 / 602; border: 1px solid var(--hair); }
+.live iframe { display: block; width: 100%; height: 100%; border: 0; background: #080808; }
+.play-row { display: grid; gap: 32px 48px; align-items: center; }
+@media (min-width: 900px) { .play-row { grid-template-columns: 5fr 7fr; } }
+.play-row.playing { grid-template-columns: 1fr; }
+@media (prefers-reduced-motion: reduce) { .play img { transition: none; } }
+.foot { padding: clamp(40px, 6vw, 72px) 0 clamp(48px, 7vw, 88px); }
+.foot .wrap { border-top: 1px solid var(--hair); padding-top: clamp(28px, 4vw, 44px); }
+.foot p { max-width: none; }
+.tools { color: var(--dim); }
+.contact { display: flex; flex-wrap: wrap; gap: 4px 0; font: 700 1.25rem/1.5 var(--head); letter-spacing: .12em; text-transform: uppercase; }
+.contact a { overflow-wrap: anywhere; text-decoration-thickness: 1.5px; text-underline-offset: .25em; }
+.contact a:hover { color: var(--trace); }
+.contact .sep { color: var(--dim); margin: 0 .5em; }
+@media (max-width: 599px) {
+  .contact { display: block; letter-spacing: .08em; }
+  .contact .sep { display: none; }
+  .contact > * { display: block; }
+}
+.trace.end::before { flex: 1; }
+.trace.end::after { flex: 0; border: 0; }
+</style>
+</head>
+<body>
+<div class="edge" aria-hidden="true"></div>
+
+<!-- PART 1: THE PRODUCT -->
+
+<!-- 1. Opening -->
+<header class="open wrap">
+  <p class="eyebrow"><span>Project management case study</span><span class="dot" aria-hidden="true"> · </span><span>Mark Jennings</span></p>
+  <div class="open-main">
+    <div class="open-text">
+      <h1>Synths &amp;<br><span class="nobr">Synth-ability</span></h1>
+      <div class="open-row">
+        <p class="lead">A browser synth that teaches children aged 8 to 12 how sound is made.</p>
+        <div class="open-side">
+          <p>I ran it as the project manager and built it myself with AI tools, in four sprints over seven weeks.</p>
+          <div class="cta"><a class="btn" href="https://markpjennings.github.io/Synths-and-synth-ability/">Try it in your browser</a><a class="jump" href="#how">How I ran it</a></div>
+        </div>
+      </div>
+    </div>
+    <figure class="hero">
+      <img src="images/synth.webp" width="1800" height="1200" fetchpriority="high"
+           alt="The full synth screen with a note held. Oscillator, filter and envelope controls sit above a one-octave keyboard, and a green oscilloscope shows the sound wave.">
+    </figure>
+    <dl class="facts">
+      <div><dt>Role</dt><dd>Project manager, designer and builder</dd></div>
+      <div><dt>Timeline</dt><dd>Four sprints, 13 April to 1 June 2026</dd></div>
+      <div><dt>Decision log</dt><dd>15 entries, each with its reason</dd></div>
+      <div><dt>Status</dt><dd>Live. Classroom pilot not yet run</dd></div>
+    </dl>
+  </div>
+</header>
+<div class="scope" aria-hidden="true">
+  <svg id="scope" viewBox="0 0 1200 96" preserveAspectRatio="none"><path d="M0 48H1200"/></svg>
+</div>
+
+<main>
+<!-- 2. The problem -->
+<section class="sec part-start" id="problem">
+  <div class="wrap stack">
+    <h2>The problem</h2>
+    <p class="statement">Pick up a guitar in a shop and you get a sound out of it in about three seconds. Sit down at a synth and it's like the cockpit of an aeroplane: knobs everywhere, words like <span style="color:var(--silver-t)">oscillator</span>, <span style="color:var(--gold)">cutoff</span> and <span style="color:var(--red-t)">resonance</span>, and no obvious way to just make a noise. I wanted to build the way in I never got, for children aged 8 to 12.</p>
+  </div>
+</section>
+
+<!-- 3. How it teaches -->
+<section class="sec leads" id="teaches">
+  <div class="wrap stack">
+    <h2>One idea per screen</h2>
+    <p class="body">Oscillator, then filter, then envelope, then everything together. Each screen adds one control, so a child never faces the whole synth at once. There is no tutorial: the first tap makes a sound. There are no scores or error states: every setting sounds good.</p>
+    <figure class="wide">
+      <div class="strip">
+        <div class="shot">
+          <img src="images/oscillator.webp" width="1160" height="1152" loading="lazy" alt="Oscillator screen: one silver pitch knob and a wave switch.">
+          <dl class="ctl"><dt>Oscillator</dt><dd style="color:var(--silver-t)">Pitch</dd><dd style="color:var(--silver-t)">Wave</dd></dl>
+        </div>
+        <div class="shot">
+          <img src="images/filter.webp" width="1160" height="1152" loading="lazy" alt="Filter screen: a gold cutoff knob and a red resonance knob.">
+          <dl class="ctl"><dt>Filter</dt><dd style="color:var(--gold)">Cutoff</dd><dd style="color:var(--red-t)">Resonance</dd></dl>
+        </div>
+        <div class="shot">
+          <img src="images/envelope.webp" width="1160" height="1152" loading="lazy" alt="Envelope screen: a blue attack knob and a green release knob.">
+          <dl class="ctl"><dt>Envelope</dt><dd style="color:var(--blue-t)">Attack</dd><dd style="color:var(--green-t)">Release</dd></dl>
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section class="sec follows" id="lesson">
+  <div class="wrap">
+    <div class="pair">
+      <img src="images/filter-detail.webp" width="800" height="570" loading="lazy" alt="Close-up of the filter: the gold cutoff knob, the red resonance knob, and the green scope showing the wave.">
+      <p class="lesson-line"><span class="pull">Turn the <span class="cutoff">cutoff</span> down and the sound goes dark:</span> that one action is both what the app does and the lesson about what a filter is. The app and the lesson were designed as one problem.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Play it -->
+<section class="sec part-end" id="play">
+  <div class="wrap stack">
+    <h2>Try it</h2>
+    <div class="wide play-row">
+      <!-- On a wide screen, a click swaps this picture for the live app, in place. Elsewhere it is a plain link. -->
+      <a class="play" href="https://markpjennings.github.io/Synths-and-synth-ability/">
+        <img src="images/welcome.webp" width="1160" height="920" loading="lazy" alt="The welcome screen: Synths &amp; Synth-ability, a sine wave and a Make Noise button.">
+        <span class="btn">Try it in your browser</span>
+      </a>
+      <p class="next-line big">Six screens, live in the browser: Welcome, Oscillator, Filter, Envelope, Full Synth and You Did It. Sound starts on the first tap.</p>
+    </div>
+  </div>
+</section>
+
+<div class="trace" aria-hidden="true"><svg viewBox="0 0 240 40"><path d="M0 20Q20 -6 40 20T80 20T120 20T160 20T200 20T240 20"/></svg></div>
+
+<!-- PART 2: HOW I RAN IT -->
+
+<!-- 5. The brief and the plan -->
+<section class="sec part-start" id="how">
+  <div class="wrap grid brief">
+    <div class="part-head">
+      <h2>How I ran it</h2>
+    </div>
+    <div>
+      <p class="pull" style="margin-top:0">The MVP was one line: a child makes one sound. Everything else had to serve it.</p>
+      <p>Final project for the Project Management with AI programme at Fired Up Space, March to June 2026. I planned it around a pilot lesson at a fictional primary school, so the lesson, the stakeholders and the success criteria had a concrete classroom to plan against.</p>
+      <p>The first charter was a three-month waterfall plan. I rewrote it as four sprints, because testing in small steps is lower risk for a new format with an unproven audience. Each sprint had its own goal.</p>
+    </div>
+    <div class="wide cal">
+      <div class="cal-wave" aria-hidden="true"><i class="on"></i><i class="off"></i><i class="on"></i><i class="off"></i><i class="on"></i><i class="off"></i><i class="on"></i></div>
+      <ol class="sprints">
+        <li>
+          <h3>Sprint 1</h3>
+          <p class="dates">13–18 April</p>
+          <p class="what">wireframes, first lesson draft, AI persona interviews</p>
+        </li>
+        <li>
+          <h3>Sprint 2</h3>
+          <p class="dates">21 April–2 May</p>
+          <p class="what">six-screen prototype built, sound and lesson integrated, deployed</p>
+        </li>
+        <li>
+          <h3>Sprint 3</h3>
+          <p class="dates">5–16 May</p>
+          <p class="what">prototype refined, tested with the course cohort on 15 May</p>
+        </li>
+        <li>
+          <h3>Sprint 4</h3>
+          <p class="dates">18 May–1 June</p>
+          <p class="what">findings written up, decision log, final presentation</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Decision 1 -->
+<section class="sec decision" id="decision-1">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker">Decision 1</p>
+      <h2>Sound first</h2>
+    </div>
+    <div class="body">
+      <p>A class of children wasn't reachable until a pilot, so I used two AI personas, Maya, 10, and Cian, 12, to draft the assumptions before building anything. They pointed the same way: sound first, no wrong answers, and no waiting.</p>
+      <p>The first lesson put the explanation before the sound, so I rebuilt it: sound first, every time. The interface followed, with one idea per screen. In May I tested the prototype with the course cohort.</p>
+      <span class="logged">Decision log, April</span>
+    </div>
+    <ul class="shift" aria-label="What changed">
+      <li class="was"><b>Before</b><span>Explanation, then sound</span></li>
+      <li><b>After</b><span>Sound first, every time</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7. Decision 2 -->
+<section class="sec decision" id="decision-2">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker">Decision 2</p>
+      <h2>Measure the right thing</h2>
+    </div>
+    <div class="body">
+      <p>Before the pilot, I rewrote its success criteria so each one could be measured cleanly.</p>
+      <span class="logged">Decision log, 28 May</span>
+    </div>
+    <div class="wide criteria">
+      <img src="images/done.webp" width="1160" height="920" loading="lazy" alt="The closing screen: More noise? above four faces, from sad to smiling.">
+      <ul class="rows">
+        <li><div><b>Changed</b><p>The enjoyment rating went from five faces to four.</p></div><div><b>Why</b><p>Both upper faces are clearly smiling, so the 80% target is a clean pass or fail.</p></div></li>
+        <li><div><b>Removed</b><p>"The teacher can run the lesson without me" as a success criterion.</p></div><div><b>Why</b><p>The teacher runs the pilot without me by definition, so it can't be a measure. It became the first debrief question: "Would you run this again?"</p></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Decision 3 -->
+<section class="sec part-end decision" id="decision-3">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker">Decision 3</p>
+      <h2>Feedback in, change out</h2>
+    </div>
+    <div class="body">
+      <p>The cohort session on 15 May produced seven points. I sorted them:</p>
+      <span class="logged">Decision log, 15 May</span>
+    </div>
+    <div class="wide sort">
+      <div class="now">
+        <h3>Fix now</h3>
+        <p>the welcome screen, rebuilt in the next sprint. The knob that wouldn't turn to the right works now.</p>
+      </div>
+      <div class="later">
+        <h3>Backlog</h3>
+        <p>record and name your sound, moved to version two</p>
+      </div>
+      <div class="never">
+        <h3>Won't do</h3>
+        <p>an explanation button on every control, because it would break one idea per screen</p>
+      </div>
+      <div class="open-q">
+        <h3>Still open</h3>
+        <p>which devices to support, and where it fits in the school day</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="trace" aria-hidden="true"><svg viewBox="0 0 240 40"><path d="M0 20V6H40V34H80V6H120V34H160V6H200V34H240V20"/></svg></div>
+
+<!-- 9. What went wrong -->
+<section class="sec part-start" id="wrong">
+  <div class="wrap grid">
+    <h2>What went wrong, and what I did</h2>
+    <p>Each of these is in the decision log, with the date and the reason.</p>
+    <ul class="wide rows">
+      <li><div><b>13 May</b><p>The audio cut out between screens, because each screen was a separate page.</p></div><div><b>What I did</b><p>Rebuilt the prototype as one page with a shared audio engine, so sound carries across all six screens.</p></div></li>
+      <li><div><b>20 May</b><p>The roadmap had fallen behind the real state of the project.</p></div><div><b>What I did</b><p>Restructured it as Done, Now, Next and Later, to match where the project actually was.</p></div></li>
+      <li><div><b>April</b><p>Tracking had split across a duplicate WBS and a separate Kanban board.</p></div><div><b>What I did</b><p>Merged them into one database with five views, as the single source of truth.</p></div></li>
+      <li><div><b>April</b><p>The first communication protocol was over-engineered for a project this size.</p></div><div><b>What I did</b><p>Cut it to four touchpoints: weekly update, approvals, testing and final.</p></div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 10. How I used AI -->
+<section class="sec" id="ai">
+  <div class="wrap grid">
+    <h2>How I used AI</h2>
+    <p>AI was a tool on every part of the project. The scope, the plan and every decision in the log were mine.</p>
+    <ul class="wide rows">
+      <li><div><b>What AI did</b><p>Research on synthesis, the two child personas, the interface code, the images and drafts of the presentation.</p></div><div><b>What I did</b><p>Set the scope and the plan, made the decisions, and checked the AI's output against the project files.</p></div></li>
+      <li><div><b>Where it went wrong</b><p>It stated project status from memory instead of reading the files, and once listed a backlogged feature as shipped.</p></div><div><b>What I did</b><p>Caught it, and set a rule: read the source file before stating anything.</p></div></li>
+      <li><div><b>Where it went wrong</b><p>It added content nobody had asked for.</p></div><div><b>What I did</b><p>Removed it and set a rule: state the plan, get it confirmed, then produce, one thing at a time.</p></div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 11. Where it stands -->
+<section class="sec part-end" id="status">
+  <div class="wrap grid">
+    <h2>Where it stands</h2>
+    <div>
+      <p class="big">A working six-screen prototype, live in the browser and tested with the course cohort. A few children have tried it informally. The classroom pilot has not been run yet.</p>
+      <p>The pilot will measure three things: that 80% of children make their first sound, that 80% pick a smiling face on the four-face rating, and the teacher's answer to "Would you run this again?"</p>
+      <p>After the pilot: version two, with record, name and save your sound, then more lessons on filter modulation, LFOs and sequencing.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<div class="trace" aria-hidden="true"><svg viewBox="0 0 240 40"><path d="M0 20L30 6V34L90 6V34L150 6V34L210 6V34L240 20"/></svg></div>
+
+<footer class="foot">
+  <div class="wrap">
+    <p class="tools">Tools: Notion, Figma, Figma Make, GitHub Pages, ChatGPT, Claude. The charter, WBS, decision log and sprint records are available on request.</p>
+    <p class="contact">
+      <span>Mark Jennings</span><span class="sep" aria-hidden="true">·</span><a href="mailto:markpjennings@gmail.com">markpjennings@gmail.com</a><span class="sep" aria-hidden="true">·</span><a href="https://www.linkedin.com/in/markpjenningsdesign/">LinkedIn</a>
+    </p>
+  </div>
+</footer>
+<div class="trace end" aria-hidden="true"></div>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Page edge: the trace grows down the left edge as you scroll. */
+  var edge = document.querySelector('.edge');
+  function progress() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    edge.style.transform = 'scaleY(' + (max > 0 ? Math.min(1, window.scrollY / max) : 0) + ')';
+  }
+  window.addEventListener('scroll', progress, { passive: true });
+  window.addEventListener('resize', progress);
+  progress();
+
+  /* Opening: one note on the scope. Flat line, attack, sustain, release, flat line. */
+  var svg = document.getElementById('scope');
+  var path = svg.querySelector('path');
+  var W = 0, H = 96, phase = 0, last = 0, running = false;
+  function ramp(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
+  function draw() {
+    var d = '', lam = Math.max(84, Math.min(170, W / 7));
+    for (var x = 0; x <= W; x += 3) {
+      var u = x / W;
+      var env = ramp(.05, .3, u) * (1 - ramp(.7, .96, u));
+      var y = H / 2 - (H / 2 - 8) * env * Math.sin(2 * Math.PI * x / lam - phase);
+      d += (x ? 'L' : 'M') + x + ' ' + y.toFixed(1);
+    }
+    path.setAttribute('d', d + 'L' + W + ' ' + H / 2);
+  }
+  function size() {
+    W = Math.max(1, Math.round(svg.getBoundingClientRect().width));
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    draw();
+  }
+  function tick(now) {
+    if (!running) return;
+    phase += Math.min(64, now - (last || now)) / 1000 * 1.7;
+    last = now;
+    draw();
+    requestAnimationFrame(tick);
+  }
+  window.addEventListener('resize', size);
+  size();
+  if (!reduce && 'IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      var on = entries[0].isIntersecting;
+      if (on && !running) { running = true; last = 0; requestAnimationFrame(tick); }
+      if (!on) running = false;
+    }).observe(svg);
+  }
+  /* The live app: on a wide screen, play it right here. It needs a 900 by 600 window. */
+  var play = document.querySelector('a.play');
+  play.addEventListener('click', function (e) {
+    var row = play.parentElement;
+    if (row.clientWidth < 900) return; /* too narrow to embed: follow the link */
+    if (window.self !== window.top) return; /* already inside a frame, e.g. a preview: follow the link */
+    e.preventDefault();
+    var frame = document.createElement('iframe');
+    frame.src = play.href;
+    frame.title = 'Synths & Synth-ability';
+    frame.allow = 'autoplay';
+    var box = document.createElement('div');
+    box.className = 'live';
+    box.appendChild(frame);
+    play.replaceWith(box);
+    row.classList.add('playing');
+    frame.focus();
+  });
+})();
+</script>
+</body>
+</html>
